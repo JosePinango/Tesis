@@ -24,6 +24,7 @@ class CauDilConv1D(nn.Module):
     def convolution(self, x: Tensor) -> Tensor:
         if self.causal_padding is not None:
             x = F.pad(x, (self.causal_padding, 0))
+            # x = x.type(torch.float64)
             # x2
             # print(f'eeeeeeeeeeee {x2}')
             # l_padding = torch.zeros(x.shape[0], self.causal_padding)
@@ -47,24 +48,31 @@ class Inception(nn.Module):
         super().__init__()
         if conv1D is None:
             conv1D = CauDilConv1D
-        self.mod7_1 = conv1D(in_channels, 6*2, 3, 1)
+        self.mod7_1 = conv1D(in_channels, 7*2, 3, 1)
         self.mod7_2 = nn.ReLU()
-        self.mod7_3 = conv1D(6*2, pool_features, 3, 2)
+        self.mod7_3 = conv1D(7*2, pool_features, 3, 2)
         self.mod7_4 = nn.ReLU()
 
-        self.mod10_1 = conv1D(in_channels, 6*2, 3, 1)
+        self.mod10_1 = conv1D(in_channels, 7*2, 3, 1)
         self.mod10_2 = nn.ReLU()
-        self.mod10_3 = conv1D(6*2, 6*3, 3, 2)
+        self.mod10_3 = conv1D(7*2, 7*3, 3, 2)
         self.mod10_4 = nn.ReLU()
-        self.mod10_5 = conv1D(6*3, pool_features, 2, 4, causal_padding=4)
+        self.mod10_5 = conv1D(7*3, pool_features, 2, 4, causal_padding=4)
         self.mod10_6 = nn.ReLU()
 
-        self.mod15_1 = conv1D(in_channels, 6*2, 3, 1)
+        self.mod15_1 = conv1D(in_channels, 7*2, 3, 1)
         self.mod15_2 = nn.ReLU()
-        self.mod15_3 = conv1D(6*2, 6*3, 3, 2)
+        self.mod15_3 = conv1D(7*2, 7*3, 3, 2)
         self.mod15_4 = nn.ReLU()
-        self.mod15_5 = conv1D(6*3, pool_features, 3, 4, causal_padding=8)
+        self.mod15_5 = conv1D(7*3, pool_features, 3, 4, causal_padding=8)
         self.mod15_6 = nn.ReLU()
+
+        # self.mod19_1 = conv1D(in_channels, 6 * 2, 3, 1)
+        # self.mod19_2 = nn.ReLU()
+        # self.mod19_3 = conv1D(6 * 2, 6 * 3, 3, 2)
+        # self.mod19_4 = nn.ReLU()
+        # self.mod19_5 = conv1D(6 * 3, pool_features, 4, 4, causal_padding=12)
+        # self.mod19_6 = nn.ReLU()
 
     def _forward(self, x: Tensor) -> List[Tensor]:
         mod7 = self.mod7_1(x)
@@ -73,7 +81,7 @@ class Inception(nn.Module):
         # print(mod7)
         mod7 = self.mod7_3(mod7)
         mod7 = self.mod7_4(mod7)
-        # print(mod7)
+        # print(mod7.shape)
 
         mod10 = self.mod10_1(x)
         mod10 = self.mod10_2(mod10)
@@ -91,7 +99,16 @@ class Inception(nn.Module):
         mod15 = self.mod15_6(mod15)
         # print(mod15)
 
+        # mod19 = self.mod19_1(x)
+        # mod19 = self.mod19_2(mod19)
+        # mod19 = self.mod19_3(mod19)
+        # mod19 = self.mod19_4(mod19)
+        # mod19 = self.mod19_5(mod19)
+        # mod19 = self.mod19_6(mod19)
+
+        # outputs = [mod7, mod10, mod15, mod19]
         outputs = [mod7, mod10, mod15]
+        # print(outputs[2].shape)
         return outputs
 
     def forward(self, x: Tensor) -> Tensor:
@@ -118,27 +135,121 @@ class CNN(nn.Module):
             # nn.Flatten(start_dim=0, end_dim=-1),
             nn.Flatten(),
             # N x 3*pool_features*7
-            nn.Linear(1 * pool_features * 6, pool_features * 2),
+            nn.Linear(pool_features * 8, pool_features * 2),
             nn.Dropout(p=0.5),
-            nn.Linear(pool_features * 2, 6),
+            nn.Linear(pool_features * 2, 7),
             nn.Softmax(dim=-1)
         )
 
+    def _sliding_window(self, x):
+        position = 0
+        list_out = []
+        while position < 33:
+            output = self.model(x[:, position:position + 31])
+            if torch.argmax(output, dim=1) == 6:
+                position += 1
+            else:
+                position += 31
+            list_out.append(output)
+        out_aux = torch.stack(list_out)
+        return torch.max(out_aux, dim=0).values
+
+    def _forward(self,x):
+        f = torch.vmap(self._sliding_window, in_dims=1)
+        return f(x)
+
     def forward(self, x):
         return self.model(x)
+        # position = 0
+        # list_out = []
+        # if x.shape[-1] == 31:
+        #     print('size 31')
+        #     return self.model(x)
+        # else:
+        #     print('size > 31')
+        #     print(x)
+        #     # print(self._forward(x))
+        #     # return self._forward(x)
+        #     while position < 33:
+        #         output = self.model(x[:,:,position:position+31])
+        #         # if torch.argmax(output, dim=1) == 6:
+        #         position +=1
+        #         # else:
+        #         #     return output
+        #     # return self.model(x[:,position:position+31])
+        #             # position +=31
+        #         list_out.append(output)
+        #     out_aux = torch.stack(list_out)
+        #     return torch.max(out_aux, dim=0).values
+
+class CNN_sliding_window(nn.Module):
+    def __init__(self, in_channels: int, pool_features: int) -> None:
+        super().__init__()
+        # self.in_channels = in_channels
+        # self.pool_features = pool_features
+        self.model = CNN(in_channels, pool_features)
+
+    def forward(self, x):
+        # model_aux = CNN(self.in_channels, self.pool_features)
+        position = 0
+        list_out = []
+        if x.shape[-1] == 31:
+            print('size 31')
+            return self.model(x)
+        else:
+            print('size > 31')
+            print(x)
+            # print(self._forward(x))
+            # return self._forward(x)
+            while position < 33:
+                output = self.model(x[:,position:position+31])
+                # if torch.argmax(output, dim=1) == 6:
+                position +=1
+                # else:
+                    # return output
+            # return self.model(x[:,position:position+31])
+            #         position +=31
+                list_out.append(output)
+            out_aux = torch.stack(list_out)
+            return torch.max(out_aux, dim=0).values
+
 
 
 def main():
     # input = torch.tensor([[1., 2., 3., 4., 5., 6., 7., 8., 9., 10., 11., 12., 13., 14., 15.]])
-    input =  torch.randn(4, 1, 15)
-    model = CNN(1, 6)
+    input =  torch.randn(4, 1, 32)
+    print(input.dtype)
+    model = CNN(1, 7)
     # for name, param in model.named_parameters():
     #     print(name, param)
 
     # model_vectorized = torch.vmap(model)
     # output = model_vectorized(input)
+    # for i in range(25,65):
+    #     print(i)
     output = model(input)
     # print(output)
+    # position = 0
+    # list_out = []
+    # if input.shape[-1] == 31:
+    #     print('size 31')
+    #     return model(input)
+    # else:
+    #     print('size > 31')
+    #     print(input)
+    #     # print(self._forward(x))
+    #     # return self._forward(x)
+    #     while position < 33:
+    #         output = model(input[:, position:position + 31])
+    #         if torch.argmax(output, dim=1) == 6:
+    #             position += 1
+    #         else:
+    #             # return output
+    #             # return self.model(x[:,position:position+31])
+    #             position += 31
+    #         list_out.append(output)
+    #     out_aux = torch.stack(list_out)
+    #     return torch.max(out_aux, dim=0).values
     return output
 
 

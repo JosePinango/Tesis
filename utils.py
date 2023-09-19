@@ -36,10 +36,11 @@ def train_model(train_data, dev_data, model, lr=0.01, momentum=0.9, nesterov=Fal
         print('Train loss: {:.6f} | Train accuracy: {:.6f}'.format(loss, acc))
 
         # Run **validation**
+        val_acc = 'No calculado'
         val_loss, val_acc = run_epoch(dev_data, model.eval(), optimizer)
         print('Val loss:   {:.6f} | Val accuracy:   {:.6f}'.format(val_loss, val_acc))
         # Save model
-        torch.save(model, 'mnist_model_fully_connected.pt')
+        torch.save(model, 'neural_network.pt')
     return val_acc
 
 def run_epoch(data, model, optimizer):
