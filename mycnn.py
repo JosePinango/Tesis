@@ -4,8 +4,22 @@ import numpy as np
 from typing import Any, Callable, List, Optional, Tuple
 import torch.nn.functional as F
 
+
+class Conv1D_Candle(nn.Module):
+    def __init__(self):
+        super(Conv1D_Candle, self).__init__()
+        self.model = nn.Conv2d(1,1, (4,1), bias=False)
+        # weights = torch.ones_like(self.model.weight)
+        # b = 0
+        # weights = torch.ones(out_channels, kernel_width * in_channels)
+        # weights[:, :, 1, :] = -1
+        # weights[5] = -3
+        # self.model.weight = nn.Parameter(weights, requires_grad=False)
+
+    def forward(self,x):
+        return self.model(x)
 class CauDilConv1D(nn.Module):
-    def __init__(self, in_channels: int, out_channels: int, kernel_width: int, dilation: int,
+    def __init__(self, in_channels: int, out_channels: int, kernel_height: int, kernel_width: int, dilation: int,
                  causal_padding: int = None, stride: int = 1) -> None:
         super(CauDilConv1D, self).__init__()
         self.in_channels = in_channels
@@ -15,15 +29,21 @@ class CauDilConv1D(nn.Module):
         self.dilation = dilation
         self.causal_padding = causal_padding
         self.stride = stride
-        self.kernel = nn.Linear(kernel_width * in_channels, out_channels, bias=False)
+        # self.kernel = nn.Linear(kernel_width * in_channels, out_channels, bias=False)
+        self.kernel = nn.Conv2d(in_channels,out_channels, (1, kernel_width), bias=False)
+        # weights = torch.ones_like(self.kernel.weight)
+        # b=0
         # weights = torch.ones(out_channels, kernel_width * in_channels)
-        # weights[0] = -2
+        # weights[:,-1,:] = 2
         # weights[5] = -3
         # self.kernel.weight = nn.Parameter(weights, requires_grad=False)
+        # n=0
 
-    def convolution(self, x: Tensor) -> Tensor:
+    def _convolution(self, x: Tensor) -> Tensor:
         if self.causal_padding is not None:
+            # self.causal_padding = 0
             x = F.pad(x, (self.causal_padding, 0))
+
             # x = x.type(torch.float64)
             # x2
             # print(f'eeeeeeeeeeee {x2}')
@@ -31,40 +51,48 @@ class CauDilConv1D(nn.Module):
             # x = torch.cat([l_padding, x], dim=-1)
             # x1
             # print(f'sssssssssssssss {x}')
-        conv1d_output = [self.kernel(x[:, i - self.kernel_width_aux:i:self.dilation].reshape(1, self.kernel_width * self.in_channels)) for i in range(self.kernel_width_aux, x.shape[-1] + 1, self.stride)]
+        # i=6
+        # b = x[:,:, :, i - self.kernel_width_aux:i:self.dilation]
+        # x_aux = x.reshape()
+        # print('fffffffff')
+        # print(b)
+        # conv1d_output = [self.kernel(x[:, i - self.kernel_width_aux:i:self.dilation].reshape(1, self.kernel_width * self.in_channels)) for i in range(self.kernel_width_aux, x.shape[-1] + 1, self.stride)]
+        conv1d_output = [self.kernel(x[:,:,:, i - self.kernel_width_aux:i:self.dilation]) for i in range(self.kernel_width_aux, x.shape[-1] + 1, self.stride)]
+        output = torch.cat(conv1d_output, dim=-1)
         # return torch.stack(conv1d_output, dim=1).transpose(1, 2)
-        return torch.cat(conv1d_output,dim=0).transpose(0,1)
+        # return torch.cat(conv1d_output,dim=0).transpose(0,1)
+        return output
 
     def forward(self, x: Tensor) -> Tensor:
-        if len(x.shape)==3:
-            f = torch.vmap(self.convolution)
-            return f(x)
-        return self.convolution(x).reshape(1,1,-1)
-
+        # if len(x.shape)==3:
+        #     f = torch.vmap(self.convolution)
+        #     return f(x)
+        # return self.convolution(x).reshape(1,1,-1)
+        return self._convolution(x)
 
 
 class Inception(nn.Module):
-    def __init__(self, in_channels: int, pool_features: int, conv1D: Optional[Callable[..., nn.Module]] = None) -> None:
+    def __init__(self, in_channels: int, out_channels: int, pool_features: int, conv1D: Optional[Callable[..., nn.Module]] = None) -> None:
         super().__init__()
         if conv1D is None:
             conv1D = CauDilConv1D
-        self.mod7_1 = conv1D(in_channels, 7*2, 3, 1)
+        self.mod7_1 = conv1D(in_channels, out_channels, in_channels, 3, 1)
         self.mod7_2 = nn.ReLU()
-        self.mod7_3 = conv1D(7*2, pool_features, 3, 2)
+        self.mod7_3 = conv1D(out_channels, pool_features, out_channels,3, 2)
         self.mod7_4 = nn.ReLU()
 
-        self.mod10_1 = conv1D(in_channels, 7*2, 3, 1)
+        self.mod10_1 = conv1D(in_channels, out_channels, in_channels,3, 1)
         self.mod10_2 = nn.ReLU()
-        self.mod10_3 = conv1D(7*2, 7*3, 3, 2)
+        self.mod10_3 = conv1D(out_channels, out_channels*2, out_channels,3, 2)
         self.mod10_4 = nn.ReLU()
-        self.mod10_5 = conv1D(7*3, pool_features, 2, 4, causal_padding=4)
+        self.mod10_5 = conv1D(out_channels*2, pool_features, out_channels*2,2, 4, causal_padding=4)
         self.mod10_6 = nn.ReLU()
 
-        self.mod15_1 = conv1D(in_channels, 7*2, 3, 1)
+        self.mod15_1 = conv1D(in_channels, out_channels, in_channels, 3, 1)
         self.mod15_2 = nn.ReLU()
-        self.mod15_3 = conv1D(7*2, 7*3, 3, 2)
+        self.mod15_3 = conv1D(out_channels, out_channels*2, out_channels,3, 2)
         self.mod15_4 = nn.ReLU()
-        self.mod15_5 = conv1D(7*3, pool_features, 3, 4, causal_padding=8)
+        self.mod15_5 = conv1D(out_channels*2, pool_features, out_channels*2, 3, 4, causal_padding=8)
         self.mod15_6 = nn.ReLU()
 
         # self.mod19_1 = conv1D(in_channels, 6 * 2, 3, 1)
@@ -114,32 +142,40 @@ class Inception(nn.Module):
     def forward(self, x: Tensor) -> Tensor:
         outputs = self._forward(x)
         # print(torch.cat(outputs, 1).shape)
+        b = torch.cat(outputs, 1)
         return torch.cat(outputs, 1)
 
 
 class CNN(nn.Module):
-    def __init__(self, in_channels: int, pool_features: int) -> None:
+    def __init__(self, in_channels: int, out_channels: int, pool_features: int) -> None:
         super().__init__()
         # Inception_layer = torch.vmap(Inception(in_channels, pool_features))
 
         self.model = nn.Sequential(
+            Conv1D_Candle(),
+            # nn.Conv1d(4*31, 31,1),
+            # nn.Flatten(-2,-1),
             # Inception_layer,
             # N x 1 X 25
-            Inception(in_channels, pool_features),
+            Inception(in_channels, out_channels, pool_features),
             # nn.Conv1d(in_channels, pool_features, 7),   #####solo para probar
             # N x 3*pool_features x 19
-            nn.MaxPool1d(3),
+            nn.MaxPool2d((1,3)),
             # N x 3*pool_features x 6
-            nn.Conv1d(3 * pool_features, pool_features, 1),
+            nn.Conv2d(3 * pool_features, pool_features, (1,1)),
             # N x pool_features x 6
             # nn.Flatten(start_dim=0, end_dim=-1),
             nn.Flatten(),
             # N x 3*pool_features*7
             nn.Linear(pool_features * 8, pool_features * 2),
             nn.Dropout(p=0.5),
-            nn.Linear(pool_features * 2, 7),
+            nn.Linear(pool_features * 2, 10),
             nn.Softmax(dim=-1)
         )
+        # self.model2 = nn.Sequential(
+        #     nn.Conv1d(4, 1, 1),
+        #     nn.Softmax(dim=-1)
+        # )
 
     def _sliding_window(self, x):
         position = 0
@@ -156,10 +192,14 @@ class CNN(nn.Module):
 
     def _forward(self,x):
         f = torch.vmap(self._sliding_window, in_dims=1)
+        # g = torch
         return f(x)
 
     def forward(self, x):
         return self.model(x)
+        # output1 = self.model1(x)
+        # output2 = output1.reshape(1,4,-1)
+        # return self.model2(output2).reshape(1,-1)
         # position = 0
         # list_out = []
         # if x.shape[-1] == 31:
@@ -213,13 +253,28 @@ class CNN_sliding_window(nn.Module):
             out_aux = torch.stack(list_out)
             return torch.max(out_aux, dim=0).values
 
+class CNN_candle(nn.Module):
+    def __init__(self, in_channels: int, pool_features: int) -> None:
+        super().__init__()
 
+        self.model = CNN(in_channels, pool_features)
+
+    def forward(self, x):
+        return self.model(x)
 
 def main():
     # input = torch.tensor([[1., 2., 3., 4., 5., 6., 7., 8., 9., 10., 11., 12., 13., 14., 15.]])
-    input =  torch.randn(4, 1, 32)
-    print(input.dtype)
-    model = CNN(1, 7)
+    input =  torch.ones(10,1,4, 31)
+    # print(input.dtype)
+    # model_aux = nn.Conv1d()
+    # model_aux0 = Conv1D_Candle()
+    # out_aux0= model_aux0(input)
+    # print(out_aux0)
+    # model_aux = CauDilConv1D(1,4, 1,3,1,4,1)
+    # out_aux = model_aux(out_aux0)
+    # print('tttttttttttttttttt')
+    # print(out_aux)
+    model = CNN(4, 10, 10)
     # for name, param in model.named_parameters():
     #     print(name, param)
 
@@ -227,7 +282,13 @@ def main():
     # output = model_vectorized(input)
     # for i in range(25,65):
     #     print(i)
-    output = model(input)
+    # output = model(input).reshape(1,4,-1)
+    # print(output.shape)
+    # new_output = output.reshape(-1,1,-1)
+    # print(new_output)
+    # model_aux = nn.Conv1d(4, 1, 1)
+    # new_output = model_aux(output)
+    # print(new_output)
     # print(output)
     # position = 0
     # list_out = []
@@ -250,7 +311,7 @@ def main():
     #         list_out.append(output)
     #     out_aux = torch.stack(list_out)
     #     return torch.max(out_aux, dim=0).values
-    return output
+    return model(input)
 
 
 if __name__ == '__main__':

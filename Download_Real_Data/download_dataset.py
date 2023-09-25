@@ -25,11 +25,12 @@ def normalization(data: Tensor) -> Tensor:
 
 if __name__ == '__main__':
 # def download_dataset():
-    pattern_templates = ['Rising wedge', 'Head-and-shoulders top', 'Cup with handle', 'Triangle, ascending', 'Triple top', 'Double Bottom, Adam and Eve']
+    pattern_templates = ['Pipe bottom', 'Triangle, symmetrical', 'Pipe top', 'Double Bottom, Adam and Adam', 'Ugly double bottom', 'Double Top, Adam and Adam', 'Head-and-shoulders bottom', 'Dead-cat bounce', 'Triple bottom', 'Triple top']
     dataset = []
     label_set = []
     ticker_fail = []
-    with open('bulkowski_data_v1.csv', mode='r') as csv_file:
+    label_aux_list = []
+    with open('top10_bulkowski.csv', mode='r') as csv_file:
         csv_reader = csv.reader(csv_file, delimiter=',')
         # line_count = 0
         for value, row in enumerate(csv_reader):
@@ -45,7 +46,8 @@ if __name__ == '__main__':
                     # start_date = datetime.datetime.strptime(row[3], '%m/%d/%Y').strftime('%Y-%m-%d')
 
                 # start_date = (datetime.strptime(row[4], '%m/%d/%Y') - relativedelta(months=4)).strftime('%Y-%m-%d')
-                end_date = datetime.strptime(row[4], '%m/%d/%Y').strftime('%Y-%m-%d')
+                # end_date = datetime.strptime(row[4], '%m/%d/%Y').strftime('%Y-%m-%d')
+                end_date = (datetime.strptime(row[4], '%m/%d/%Y') + relativedelta(days=2)).strftime('%Y-%m-%d')
                 ticker = row[0]
                 # print(f'ticker {ticker}')
                 # data = downloader(row[0], start_date=start_date, end_date=end_date)
@@ -55,7 +57,15 @@ if __name__ == '__main__':
                     # print(type(data))
                     # print(type(data[0]))
                     # print(data[0]['adj_close'])
-                    data = data[0]['adj_close']
+                    data_open = data[0]['open']
+                    data_open = torch.tensor(data_open.values)
+                    data_high = data[0]['high']
+                    data_high = torch.tensor(data_high.values)
+                    data_low = data[0]['low']
+                    data_low = torch.tensor(data_low.values)
+                    data_close = data[0]['close']
+                    data_close = torch.tensor(data_close.values)
+                    data = torch.stack([data_open, data_high, data_low, data_close])
                     # time.sleep(60)
 
                     # data_df = pd.DataFrame(data)
@@ -67,20 +77,22 @@ if __name__ == '__main__':
                     # data = data_df.values[:64]
                     # time.sleep(60)
                     # print(data.values)
-                    data = torch.tensor(data.values)
+                    # data = torch.tensor(data.values)
                     print(data)
 
                     # data = normalization(data)
                     try:
+                        # label_aux = row[1]
+                        # label_aux_list.append(label_aux)
                         label = torch.tensor(pattern_templates.index(row[1]))
                     except ValueError:
-                        label = torch.tensor(6)
+                        label = torch.tensor(10)
                     print(label)
                     if data.shape[-1] == 64:
-                        dataset.append(data.reshape(1,-1))
+                        dataset.append(data.reshape(1,4,-1))
 
-                        label_set.append(label.reshape(1,-1))
-                except KeyError:
+                        label_set.append(label.reshape(1,1,-1))
+                except (KeyError, TypeError):
                     ticker_fail.append(row)
                 # if value in np.arange(0,730, 25):
                 #     time.sleep(30)
@@ -103,11 +115,13 @@ if __name__ == '__main__':
     # except RuntimeError:
     #     pass
 
+    # with open('all_patterns.pt', 'wb') as f:
+    #     torch.save(label_aux_list, f)
 
-    with open('real_data_v3.pt', 'wb') as f:
+    with open('real_data_v4.pt', 'wb') as f:
         torch.save((real_data, real_label), f)
 
-    with open('symbols_not_found_v1.csv', 'w') as f:
+    with open('symbols_not_found_v4.csv', 'w') as f:
         writer = csv.writer(f)
         for row in ticker_fail:
             writer.writerow(row)

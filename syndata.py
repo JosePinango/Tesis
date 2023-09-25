@@ -75,11 +75,11 @@ def interpolation(pattern_template: Tensor, indices: List) -> Tensor:
 
 def noise_adding(pattern: Tensor) -> Tensor:
     for i in range(pattern.shape[-1]):
-        if np.random.choice(np.arange(0, 1.1, 0.1)) < 0.6:
+        if np.random.choice(np.arange(0, 1.1, 0.1)) < 1.0:
             diff = pattern[:, i]
             if i < pattern.shape[-1] - 1:
                 diff = pattern[:, i + 1] - pattern[:, i]
-            pattern[:, i:i + 1] += np.random.choice(np.arange(-0.3, 0.35, 0.5)) * diff
+            pattern[:, i:i + 1] += np.random.choice(np.arange(-0.25, 0.3, 0.5)) * diff
     return pattern
 
 
@@ -100,8 +100,14 @@ def random_tensor(dim0: int, dim1: int):
 
 
 def normalization(data: Tensor) -> Tensor:
-    std, mean = torch.std_mean(data)
-    data = torch.cat([torch.tensor(np.random.uniform(low= torch.min(data), high=torch.max(data), size=(1, 31 - data.shape[-1]))), data], dim=-1)
+    std, mean = torch.std_mean(data, dim=-1)
+    data = torch.cat([torch.tensor(np.random.uniform(low= torch.min(data), high=torch.max(data), size=(31 - data.shape[-1]))).reshape(1,-1), data], dim=-1)
+    output = (data - mean) / std
+    return output
+
+def normalization_real(data: Tensor) -> Tensor:
+    std, mean = torch.std_mean(data, dim=-1)
+    data = torch.cat([torch.tensor(np.random.uniform(low= torch.min(data), high=torch.max(data), size=(31 - data.shape[-1]))), data], dim=-1)
     output = (data - mean) / std
     return output
 
@@ -137,31 +143,40 @@ def data_generator(pattern_templates: Tensor, data_size: int, filename: str) -> 
     #                      'double_bottoms']
     list_data = []
     list_labels = []
+
     # labels = torch.tensor([[[0]], [[1]], [[2]], [[3]], [[4]], [[5]]])
     for _ in range(data_size):
         #     list_tensors = []
-        random_pattern = np.random.choice(np.arange(0,7,1))
-        # random_stride = np.random.choice(np.arange(2, 6, 1))
-        if random_pattern == 6:
-            out = torch.randn(1,31, dtype=torch.float32)
-        else:
-            random_stride = 5
-            out = synthetic_data(pattern_templates[random_pattern], random_stride=random_stride)
-        # out = vec_generator(pattern_templates, random_stride=random_stride)
-        # print(out)
-        # std, mean = torch.std_mean(out, dim=-1)
-        # out1 = (out - mean) / std
-        # out1 = vec_normalization(out)
-        out1 = normalization(out)
-        # n = out1.shape[-1]
-        # x = torch.linspace(0, n - 1, steps=n)
-        # plt.plot(x, out1[0,:])
-        # plt.show()
-        # print(out1)
-        # time.sleep(60)
-        out1 = out1.type(torch.float32)
-        list_data.append(out1)
-        label = torch.tensor(random_pattern).reshape(1,-1)
+        list_candle = []
+        random_pattern = np.random.choice(np.arange(0, 3, 1))
+        random_stride = np.random.choice(np.arange(3, 6, 1))
+        for _ in range(4):
+
+            if random_pattern == 6:
+                out = torch.rand(1,31, dtype=torch.float32)
+            else:
+                # random_stride = 5
+                out = synthetic_data(pattern_templates[random_pattern], random_stride=random_stride)
+            # out = vec_generator(pattern_templates, random_stride=random_stride)
+            # print(out)
+            # std, mean = torch.std_mean(out, dim=-1)
+            # out1 = (out - mean) / std
+            # out1 = vec_normalization(out)
+            out1 = normalization(out)
+            # n = out1.shape[-1]
+            # x = torch.linspace(0, n - 1, steps=n)
+            # plt.plot(x, out1[0,:])
+            # plt.show()
+            # print(out1)
+            # time.sleep(60)
+            out1 = out1.type(torch.float32).reshape(-1)
+            list_candle.append(out1)
+        out1 = torch.stack(list_candle)
+        min = torch.min(out1, dim=0).values
+        max = torch.max(out1, dim=0).values
+        out1 = torch.stack([out1[0], max, min, out1[-1]])
+        list_data.append(out1.reshape(1,4,-1))
+        label = torch.tensor(random_pattern).reshape(1,1,-1)
         list_labels.append(label)
     syn_data = torch.stack(list_data, dim=0)
     print(syn_data.shape)
@@ -181,13 +196,18 @@ def data_generator(pattern_templates: Tensor, data_size: int, filename: str) -> 
 
 
 def pattern_templates(filename: str):
-    wedge_rising = torch.Tensor([[[5, 1, 5.5, 2.5, 6, 4, 6.5]]])
-    head_and_shoulders = torch.Tensor([[[1.5, 5.5, 3.5, 7, 3.5, 5.5, 1.5]]])
-    cup_with_handle = torch.Tensor([[[5, 2.5, 2, 2.5, 5, 4, 5]]])
-    triangle_ascending = torch.Tensor([[[6, 2, 6, 3, 6, 4, 6]]])
-    triple_tops = torch.Tensor([[[1.5, 6.0, 3.5, 6.0, 3.5, 6.0, 1.5]]])
-    double_bottoms = torch.Tensor([[[5, 2.5, 2, 2.5, 5, 2, 5]]])
-    list_patterns = [wedge_rising, head_and_shoulders, cup_with_handle, triangle_ascending, triple_tops, double_bottoms]
+    # triangle_symmetrical = torch.Tensor([[[7,1,6,2,5,3,4]]])
+    double_top_adam_adam = torch.Tensor([[[1,3,5,3,5,3,1]]])
+    head_and_shoulders_bottom = torch.Tensor([[[5.5,2.5,4,1,4,2.5,5.5]]])
+    triple_top = torch.Tensor([[[1,5,2,5,2,5,1]]])
+    # wedge_rising = torch.Tensor([[[5, 1, 5.5, 2.5, 6, 4, 6.5]]])
+    # head_and_shoulders = torch.Tensor([[[1.5, 5.5, 3.5, 7, 3.5, 5.5, 1.5]]])
+    # cup_with_handle = torch.Tensor([[[5, 2.5, 2, 2.5, 5, 4, 5]]])
+    # triangle_ascending = torch.Tensor([[[6, 2, 6, 3, 6, 4, 6]]])
+    # triple_tops = torch.Tensor([[[1.5, 6.0, 3.5, 6.0, 3.5, 6.0, 1.5]]])
+    # double_bottoms = torch.Tensor([[[5, 2.5, 2, 2.5, 5, 2, 5]]])
+    # list_patterns = [wedge_rising, head_and_shoulders, cup_with_handle, triangle_ascending, triple_tops, double_bottoms]
+    list_patterns = [double_top_adam_adam, head_and_shoulders_bottom, triple_top]
     patterns = torch.cat(list_patterns, dim=0)
     with open(filename + '.pt', 'wb') as f:
         torch.save(patterns, f)
@@ -205,14 +225,14 @@ def load_data(filename: str) -> Tensor:
 
 
 if __name__ == '__main__':
-    filename = 'pattern_templates'
+    filename = 'pattern_templates_v2'
     pattern_templates(filename)
     templates = load_data(filename)
     # print(templates)
     # n = templates.shape[0]
     # x = torch.linspace(0, 6, steps=7)
     # for i in range(n):
-    #     plt.plot(x, templates[i,0,:])
+    #     plt.plot(x, templates[i].reshape(-1))
     #     plt.show()
     # pt = torch.Tensor([[[1, 4, 2, 6, 2, 4, 1]]])
     # output1 = time_scaling(pt)
@@ -223,10 +243,17 @@ if __name__ == '__main__':
     # print(output3)
     # output4 = noise_adding(output3)
     # print(output4)
-    filename2 = 'synthetic_data_v6'
-    data_generator(templates, 10000, filename2)
+
+    filename2 = 'synthetic_data_v15'
+    data_generator(templates, 5000, filename2)
     X_data, Y_data = load_data(filename2)
-    print(X_data[25])
+    print(X_data[25], Y_data[25])
+    x = torch.linspace(0,30,steps=31)
+    plt.plot(x, X_data[25,0,0].reshape(-1))
+    plt.plot(x, X_data[25,0,1].reshape(-1))
+    plt.plot(x, X_data[25,0,2].reshape(-1))
+    plt.plot(x, X_data[25,0,3].reshape(-1))
+    plt.show()
     # inputs = load_data()
     # print(inputs)
     # print(inputs[5].shape)
