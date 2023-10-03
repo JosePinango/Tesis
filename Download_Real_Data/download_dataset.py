@@ -30,7 +30,7 @@ if __name__ == '__main__':
     label_set = []
     ticker_fail = []
     label_aux_list = []
-    with open('top10_bulkowski.csv', mode='r') as csv_file:
+    with open('new_top3_patterns.csv', mode='r') as csv_file:
         csv_reader = csv.reader(csv_file, delimiter=',')
         # line_count = 0
         for value, row in enumerate(csv_reader):
@@ -47,12 +47,12 @@ if __name__ == '__main__':
 
                 # start_date = (datetime.strptime(row[4], '%m/%d/%Y') - relativedelta(months=4)).strftime('%Y-%m-%d')
                 # end_date = datetime.strptime(row[4], '%m/%d/%Y').strftime('%Y-%m-%d')
-                end_date = (datetime.strptime(row[4], '%m/%d/%Y') + relativedelta(days=2)).strftime('%Y-%m-%d')
+                end_date = (datetime.strptime(row[4], '%m/%d/%Y') + relativedelta(days=0)).strftime('%Y-%m-%d')
                 ticker = row[0]
                 # print(f'ticker {ticker}')
                 # data = downloader(row[0], start_date=start_date, end_date=end_date)
                 try:
-                    data = time_series.read_ts_from_ibdb(row[0], '1 day', None, end_date, last=64)
+                    data = time_series.read_ts_from_ibdb(row[0], '1 day', None, end_date, last=31)
                     # print(data)
                     # print(type(data))
                     # print(type(data[0]))
@@ -118,10 +118,10 @@ if __name__ == '__main__':
     # with open('all_patterns.pt', 'wb') as f:
     #     torch.save(label_aux_list, f)
 
-    with open('real_data_v4.pt', 'wb') as f:
+    with open('real_data_v6.pt', 'wb') as f:
         torch.save((real_data, real_label), f)
 
-    with open('symbols_not_found_v4.csv', 'w') as f:
+    with open('symbols_not_found_v6.csv', 'w') as f:
         writer = csv.writer(f)
         for row in ticker_fail:
             writer.writerow(row)

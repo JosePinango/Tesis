@@ -152,7 +152,7 @@ class CNN(nn.Module):
         # Inception_layer = torch.vmap(Inception(in_channels, pool_features))
 
         self.model = nn.Sequential(
-            Conv1D_Candle(),
+            # Conv1D_Candle(),
             # nn.Conv1d(4*31, 31,1),
             # nn.Flatten(-2,-1),
             # Inception_layer,
@@ -167,9 +167,9 @@ class CNN(nn.Module):
             # nn.Flatten(start_dim=0, end_dim=-1),
             nn.Flatten(),
             # N x 3*pool_features*7
-            nn.Linear(pool_features * 8, pool_features * 2),
+            nn.Linear(pool_features * 18, pool_features * 2),
             nn.Dropout(p=0.5),
-            nn.Linear(pool_features * 2, 10),
+            nn.Linear(pool_features * 2, pool_features),
             nn.Softmax(dim=-1)
         )
         # self.model2 = nn.Sequential(
@@ -264,7 +264,7 @@ class CNN_candle(nn.Module):
 
 def main():
     # input = torch.tensor([[1., 2., 3., 4., 5., 6., 7., 8., 9., 10., 11., 12., 13., 14., 15.]])
-    input =  torch.ones(10,1,4, 31)
+    input =  torch.ones(10,1,1, 62)
     # print(input.dtype)
     # model_aux = nn.Conv1d()
     # model_aux0 = Conv1D_Candle()
@@ -274,7 +274,7 @@ def main():
     # out_aux = model_aux(out_aux0)
     # print('tttttttttttttttttt')
     # print(out_aux)
-    model = CNN(4, 10, 10)
+    model = CNN(1, 3, 3)
     # for name, param in model.named_parameters():
     #     print(name, param)
 

@@ -8,6 +8,8 @@ import numpy as np
 import pickle
 import matplotlib.pyplot as plt
 import torch.nn.functional as F
+import pandas as pd
+import plotly.graph_objects as go
 
 
 def time_scaling(pat_temp_length, stride: int = 5) -> Tuple[int, int]:
@@ -76,10 +78,28 @@ def interpolation(pattern_template: Tensor, indices: List) -> Tensor:
 def noise_adding(pattern: Tensor) -> Tensor:
     for i in range(pattern.shape[-1]):
         if np.random.choice(np.arange(0, 1.1, 0.1)) < 1.0:
-            diff = pattern[:, i]
+            diff = 0 #pattern[:, i]
             if i < pattern.shape[-1] - 1:
                 diff = pattern[:, i + 1] - pattern[:, i]
-            pattern[:, i:i + 1] += np.random.choice(np.arange(-0.25, 0.3, 0.5)) * diff
+            pattern[:, i:i + 1] += np.random.choice(np.arange(-0.4, 0.45, 0.5)) * diff
+    return pattern
+
+def noise_adding_min(pattern: Tensor) -> Tensor:
+    for i in range(pattern.shape[-1]):
+        if np.random.choice(np.arange(0, 1.1, 0.1)) < 1.0:
+            diff = 0 #pattern[:, i]
+            if i < pattern.shape[-1] - 1:
+                diff = pattern[:, i + 1] - pattern[:, i]
+            pattern[:, i:i + 1] += np.random.choice(np.arange(-1.0, -0.4, 0.5)) * abs(diff)
+    return pattern
+
+def noise_adding_max(pattern: Tensor) -> Tensor:
+    for i in range(pattern.shape[-1]):
+        if np.random.choice(np.arange(0, 1.1, 0.1)) < 1.0:
+            diff = 0 #pattern[:, i]
+            if i < pattern.shape[-1] - 1:
+                diff = pattern[:, i + 1] - pattern[:, i]
+            pattern[:, i:i + 1] += np.random.choice(np.arange(0.4, 1.0, 0.5)) * abs(diff)
     return pattern
 
 
@@ -113,7 +133,7 @@ def normalization_real(data: Tensor) -> Tensor:
 
 def normalization64(data: Tensor) -> Tensor:
     std, mean = torch.std_mean(data)
-    data = torch.cat([torch.tensor(np.random.uniform(low= torch.min(data), high=torch.max(data), size=(1, 64 - data.shape[-1]))), data], dim=-1)
+    data = torch.cat([torch.tensor(np.random.uniform(low= torch.min(data), high=torch.max(data), size=(62 - data.shape[-1]))), data], dim=-1)
     output = (data - mean) / std
     return output
 
@@ -150,31 +170,49 @@ def data_generator(pattern_templates: Tensor, data_size: int, filename: str) -> 
         list_candle = []
         random_pattern = np.random.choice(np.arange(0, 3, 1))
         random_stride = np.random.choice(np.arange(3, 6, 1))
-        for _ in range(4):
+        # for _ in range(4):
 
-            if random_pattern == 6:
-                out = torch.rand(1,31, dtype=torch.float32)
-            else:
+        if random_pattern == 6:
+            out = torch.rand(1,31, dtype=torch.float32)
+        else:
                 # random_stride = 5
-                out = synthetic_data(pattern_templates[random_pattern], random_stride=random_stride)
+            out = synthetic_data(pattern_templates[random_pattern], random_stride=random_stride)
+
+        out0 = out.detach().clone()
+        # np.random.seed(23432)
+        out1 = noise_adding(out0.detach().clone())
+        # np.random.seed(8762)
+        out_min = noise_adding_min(out0.detach().clone())
+        # out_min2 = noise_adding_min(out1.detach().clone())
+        # np.random.seed(6348)
+        out_max = noise_adding(out0.detach().clone())
+        # out_max2 = noise_adding_min(out1.detach().clone())
             # out = vec_generator(pattern_templates, random_stride=random_stride)
             # print(out)
             # std, mean = torch.std_mean(out, dim=-1)
             # out1 = (out - mean) / std
             # out1 = vec_normalization(out)
-            out1 = normalization(out)
+        out0 = normalization(out0)
+        out1 = normalization(out_max)
+        out2 = normalization(out_min)
+        out3 = normalization(out1)
             # n = out1.shape[-1]
             # x = torch.linspace(0, n - 1, steps=n)
             # plt.plot(x, out1[0,:])
             # plt.show()
             # print(out1)
             # time.sleep(60)
-            out1 = out1.type(torch.float32).reshape(-1)
-            list_candle.append(out1)
+        out0 = out0.type(torch.float32).reshape(-1)
+        out1 = out1.type(torch.float32).reshape(-1)
+        out2 = out2.type(torch.float32).reshape(-1)
+        out3 = out3.type(torch.float32).reshape(-1)
+        # list_candle.append(out1)
+        list_candle = [out0, out1, out2, out3]
         out1 = torch.stack(list_candle)
         min = torch.min(out1, dim=0).values
         max = torch.max(out1, dim=0).values
         out1 = torch.stack([out1[0], max, min, out1[-1]])
+        # out1 = torch.stack([max, min])
         list_data.append(out1.reshape(1,4,-1))
         label = torch.tensor(random_pattern).reshape(1,1,-1)
         list_labels.append(label)
@@ -223,6 +261,28 @@ def load_data(filename: str) -> Tensor:
         inputs = torch.load(f)
     return inputs
 
+def transform_data(candle_data: Tensor):
+    n = candle_data.shape[-1]
+    new_timeseries = []
+    for i in range(n):
+        value1 = candle_data[2,i]
+        value2 = candle_data[1,i]
+        if (candle_data[1,i] - candle_data[0,i]) < (candle_data[0,i] - candle_data[2,i]):
+            value1 = candle_data[1,i]
+            value2 = candle_data[2,i]
+        new_timeseries.append(value1)
+        new_timeseries.append(value2)
+    return torch.Tensor(new_timeseries).reshape(1,1,1,-1)
+
+def transform_database(data: Tensor):
+    n = data.shape[0]
+    list_transform_data = []
+    for i in range(n):
+        t_data = transform_data(data[i,0])
+        list_transform_data.append(t_data)
+    return torch.cat(list_transform_data, dim=0)
+
+
 
 if __name__ == '__main__':
     filename = 'pattern_templates_v2'
@@ -244,16 +304,36 @@ if __name__ == '__main__':
     # output4 = noise_adding(output3)
     # print(output4)
 
-    filename2 = 'synthetic_data_v15'
-    data_generator(templates, 5000, filename2)
+    filename2 = 'synthetic_data_v19'
+    data_generator(templates, 10000, filename2)
     X_data, Y_data = load_data(filename2)
     print(X_data[25], Y_data[25])
-    x = torch.linspace(0,30,steps=31)
-    plt.plot(x, X_data[25,0,0].reshape(-1))
-    plt.plot(x, X_data[25,0,1].reshape(-1))
-    plt.plot(x, X_data[25,0,2].reshape(-1))
-    plt.plot(x, X_data[25,0,3].reshape(-1))
-    plt.show()
+    X_test = X_data
+
+    one_data = X_data[0,0]
+    h = transform_data(one_data)
+    print(h.shape)
+    print(h)
+    # x = torch.linspace(0,30,steps=31)
+    # plt.plot(x, X_data[25,0,0].reshape(-1))
+    # plt.plot(x, X_data[25,0,1].reshape(-1))
+    # plt.plot(x, X_data[25,0,2].reshape(-1))
+    # plt.plot(x, X_data[25,0,3].reshape(-1))
+    # plt.show()
+
+    # for n in range(0,10):
+    #     X_data = X_test[n, 0]
+    # #     b = Y_test[n]
+    # #
+    # # #     # x_date = pd.DataFrame(x.numpy())
+    #     dates = pd.date_range(start='1/1/2023', end='1/31/2023')
+    #     fig = go.Figure(data=[go.Candlestick(x=dates,
+    #                                          open=X_data[0],
+    #                                          high=X_data[1],
+    #                                          low=X_data[2],
+    #                                          close=X_data[3])])
+    #     fig.show()
+
     # inputs = load_data()
     # print(inputs)
     # print(inputs[5].shape)
