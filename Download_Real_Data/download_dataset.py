@@ -12,20 +12,28 @@ import time
 # import sys
 # sys.path.append("/home/jose/Documents/Tesis/Download_Real_Data")
 from Download_Real_Data import time_series
+from syndata import load_data
+from mycnn import CNN
+
 
 def downloader(ticker: str, start_date: str, end_date: str) -> Tensor:
     yahoo_financials = YahooFinancials(ticker)
     data = yahoo_financials.get_historical_price_data(start_date=start_date, end_date=end_date, time_interval='daily')
     return data
 
+
 def normalization(data: Tensor) -> Tensor:
     std, mean = torch.std_mean(data)
     output = (data - mean) / std
     return output
 
-if __name__ == '__main__':
-# def download_dataset():
-    pattern_templates = ['Pipe bottom', 'Triangle, symmetrical', 'Pipe top', 'Double Bottom, Adam and Adam', 'Ugly double bottom', 'Double Top, Adam and Adam', 'Head-and-shoulders bottom', 'Dead-cat bounce', 'Triple bottom', 'Triple top']
+
+def main():
+    # if __name__ == '__main__':
+    # def download_dataset():
+    pattern_templates = ['Pipe bottom', 'Triangle, symmetrical', 'Pipe top', 'Double Bottom, Adam and Adam',
+                         'Ugly double bottom', 'Double Top, Adam and Adam', 'Head-and-shoulders bottom',
+                         'Dead-cat bounce', 'Triple bottom', 'Triple top']
     dataset = []
     label_set = []
     ticker_fail = []
@@ -43,7 +51,7 @@ if __name__ == '__main__':
                 # line_count +=1
                 print(value)
                 print(row)
-                    # start_date = datetime.datetime.strptime(row[3], '%m/%d/%Y').strftime('%Y-%m-%d')
+                # start_date = datetime.datetime.strptime(row[3], '%m/%d/%Y').strftime('%Y-%m-%d')
 
                 # start_date = (datetime.strptime(row[4], '%m/%d/%Y') - relativedelta(months=4)).strftime('%Y-%m-%d')
                 # end_date = datetime.strptime(row[4], '%m/%d/%Y').strftime('%Y-%m-%d')
@@ -89,17 +97,17 @@ if __name__ == '__main__':
                         label = torch.tensor(10)
                     print(label)
                     if data.shape[-1] == 64:
-                        dataset.append(data.reshape(1,4,-1))
+                        dataset.append(data.reshape(1, 4, -1))
 
-                        label_set.append(label.reshape(1,1,-1))
+                        label_set.append(label.reshape(1, 1, -1))
                 except (KeyError, TypeError):
                     ticker_fail.append(row)
                 # if value in np.arange(0,730, 25):
                 #     time.sleep(30)
 
-                    # print(torch.tensor(data))
-                    # print(label)
-                    # print(f'sssss {row}')
+                # print(torch.tensor(data))
+                # print(label)
+                # print(f'sssss {row}')
             # except (TypeError, KeyError):
             #     ticker_fail.append(row[0])
             #     ticker_fail.append(value)
@@ -125,4 +133,60 @@ if __name__ == '__main__':
         writer = csv.writer(f)
         for row in ticker_fail:
             writer.writerow(row)
+
+def recognition_pattern(ticker, model):
+    aapl = load_data(ticker)
+    aapl = torch.Tensor(aapl.values)
+    i = 0
+    list_patterns = []
+    list_labels = []
+    while i < aapl.shape[-1]:
+        subsequence = aapl[i:i + 62]
+        i = i + 1
+        if len(subsequence) > 61:
+
+            print(i)
+
+            output = model(subsequence.reshape(1, 1, 1, -1))
+            print(f'Output: {output}')
+            # print(f'First element: {output[0, 0]}')
+            prediction = torch.argmax(output, dim=-1)
+            label = prediction.item()
+            print(f'Label: {prediction}')
+            if output[0, label] > 0.7:
+                print(f'Probability: {output[0, label].item()}')
+                i = i + 61
+
+                print(f'Nuevo índice: {i}')
+                list_patterns.append(subsequence.reshape(1, 1, -1))
+                list_labels.append(torch.Tensor(prediction).reshape(1, 1, -1))
+    patterns = torch.stack(list_patterns, dim=0)
+    labels = torch.stack(list_labels, dim=0)
+    with open('found_patterns.pt', 'wb') as f:
+        torch.save((patterns, labels), f)
+    print(patterns.shape)
+    print(labels.shape)
+
+
+if __name__ == '__main__':
+    data = time_series.read_ts_from_ibdb('AAPL', '1 day', None, '2023-08-31', last=2000)
+    # data_open = data[0]['open']
+    # data_open = torch.tensor(data_open.values)
+    # data_high = data[0]['high']
+    # data_high = torch.tensor(data_high.values)
+    # data_low = data[0]['low']
+    # data_low = torch.tensor(data_low.values)
+    # data_close = data[0]['close']
+    # data_close = torch.tensor(data_close.values)
+    data_adj_close = data[0]['adj_close']
+    # data = torch.stack([data_open, data_high, data_low, data_close])
+    with open('AAPL.pt', 'wb') as f:
+        torch.save(data_adj_close, f)
+    #
+    # with open('AAPL.csv', 'w') as f:
+    #     writer = csv.writer(f)
+    #     # for row in ticker_fail:
+    #     writer.writerow(data_adj_close)
+    model = CNN(1, 3, 3)
+    recognition_pattern('AAPL', model)
 
