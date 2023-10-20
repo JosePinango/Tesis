@@ -135,41 +135,51 @@ def main():
             writer.writerow(row)
 
 def recognition_pattern(ticker, model):
+    data = time_series.read_ts_from_ibdb(ticker, '1 day', None, '2023-08-31', last=2000)
+    data_adj_close = data[0]['adj_close']
+    # data = torch.stack([data_open, data_high, data_low, data_close])
+    with open(ticker + '.pt', 'wb') as f:
+        torch.save(data_adj_close, f)
     aapl = load_data(ticker)
-    aapl = torch.tensor(aapl.values)
+    aapl = torch.Tensor(aapl.values)
+    aapl = normalization(aapl)
+    # aapl= aapl.type(torch.float64)
+    # aapl = torch.rand(10000)
     i = 0
     list_patterns = []
     list_labels = []
     while i < aapl.shape[-1]:
-        subsequence = aapl[i:i + 62]
-        i = i + 1
-        if len(subsequence) > 61:
+        subsequence = aapl[i:i + 32]
 
-            print(i)
+        if len(subsequence) > 31:
+
+            # print(i)
 
             output = model(subsequence.reshape(1, 1, -1))
-            print(f'Output: {output}')
+            # print(f'Output: {output}')
             # print(f'First element: {output[0, 0]}')
             prediction = torch.argmax(output, dim=-1)
             label = prediction.item()
             print(f'Label: {prediction}')
-            if output[0, label] > 0.7:
+            if label != 6 and output[0, label] > 0.97:
                 print(f'Probability: {output[0, label].item()}')
-                i = i + 61
+                i = i + 31
 
-                print(f'Nuevo índice: {i}')
+                # print(f'Nuevo índice: {i}')
                 list_patterns.append(subsequence.reshape(1, -1))
                 list_labels.append(torch.Tensor(prediction).reshape( 1, -1))
+        i = i + 1
     patterns = torch.stack(list_patterns, dim=0)
     labels = torch.stack(list_labels, dim=0)
-    with open('found_patterns.pt', 'wb') as f:
+    with open(ticker + '.pt', 'wb') as f:
         torch.save((patterns, labels), f)
     print(patterns.shape)
     print(labels.shape)
 
 
 if __name__ == '__main__':
-    data = time_series.read_ts_from_ibdb('AAPL', '1 day', None, '2023-08-31', last=2000)
+    ticker = 'AMZN'
+    data = time_series.read_ts_from_ibdb(ticker, '1 day', None, '2023-08-31', last=2000)
     # data_open = data[0]['open']
     # data_open = torch.tensor(data_open.values)
     # data_high = data[0]['high']
@@ -180,13 +190,13 @@ if __name__ == '__main__':
     # data_close = torch.tensor(data_close.values)
     data_adj_close = data[0]['adj_close']
     # data = torch.stack([data_open, data_high, data_low, data_close])
-    with open('AAPL.pt', 'wb') as f:
+    with open(ticker + '.pt', 'wb') as f:
         torch.save(data_adj_close, f)
     #
     # with open('AAPL.csv', 'w') as f:
     #     writer = csv.writer(f)
     #     # for row in ticker_fail:
     #     writer.writerow(data_adj_close)
-    model = CNN(1, 3, 3)
-    recognition_pattern('AAPL', model)
+    model = CNN(1, 7, 7)
+    recognition_pattern(ticker, model.eval())
 

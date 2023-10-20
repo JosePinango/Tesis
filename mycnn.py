@@ -30,12 +30,13 @@ class CauDilConv1D(nn.Module):
         self.causal_padding = causal_padding
         self.stride = stride
         # self.kernel = nn.Linear(kernel_width * in_channels, out_channels, bias=False)
-        self.kernel = nn.Conv2d(in_channels,out_channels, (1, kernel_width), bias=False)
+        # self.kernel = nn.Conv2d(in_channels,out_channels, (1, kernel_width), bias=False)
+        self.kernel = nn.Conv1d(in_channels, out_channels, 3, dilation=dilation, bias=False)
         # weights = torch.ones_like(self.kernel.weight)
         # b=0
         # weights = torch.ones(out_channels, kernel_width * in_channels)
         # weights[:,-1,:] = 2
-        # weights[5] = -3
+        # weights[1] = -2
         # self.kernel.weight = nn.Parameter(weights, requires_grad=False)
         # n=0
 
@@ -52,16 +53,18 @@ class CauDilConv1D(nn.Module):
             # x1
             # print(f'sssssssssssssss {x}')
         # i=6
-        # b = x[:,:, :, i - self.kernel_width_aux:i:self.dilation]
+        # b = x[:, i - self.kernel_width_aux:i:self.dilation]
         # x_aux = x.reshape()
         # print('fffffffff')
         # print(b)
-        # conv1d_output = [self.kernel(x[:, i - self.kernel_width_aux:i:self.dilation].reshape(1, self.kernel_width * self.in_channels)) for i in range(self.kernel_width_aux, x.shape[-1] + 1, self.stride)]
-        conv1d_output = [self.kernel(x[:,:,:, i - self.kernel_width_aux:i:self.dilation]) for i in range(self.kernel_width_aux, x.shape[-1] + 1, self.stride)]
-        output = torch.cat(conv1d_output, dim=-1)
+        conv1d_output = self.kernel(x)
+        # conv1d_output = [self.kernel(x[:,:, i - self.kernel_width_aux:i]) for i in range(self.kernel_width_aux, x.shape[-1] + 1, self.stride)]
+        # conv1d_output = [self.kernel(x[:,:,:, i - self.kernel_width_aux:i:self.dilation]) for i in range(self.kernel_width_aux, x.shape[-1] + 1, self.stride)]
+        # output = torch.cat(conv1d_output, dim=-1)
         # return torch.stack(conv1d_output, dim=1).transpose(1, 2)
-        # return torch.cat(conv1d_output,dim=0).transpose(0,1)
-        return output
+        # return torch.cat(conv1d_output,dim=-1) #.transpose(0,1)
+        # return output
+        return conv1d_output
 
     def forward(self, x: Tensor) -> Tensor:
         # if len(x.shape)==3:
@@ -85,7 +88,7 @@ class Inception(nn.Module):
         self.mod10_2 = nn.ReLU()
         self.mod10_3 = conv1D(out_channels, out_channels*2, out_channels,3, 2)
         self.mod10_4 = nn.ReLU()
-        self.mod10_5 = conv1D(out_channels*2, pool_features, out_channels*2,2, 4, causal_padding=4)
+        self.mod10_5 = conv1D(out_channels*2, pool_features, out_channels*2,2, 4, causal_padding=8)
         self.mod10_6 = nn.ReLU()
 
         self.mod15_1 = conv1D(in_channels, out_channels, in_channels, 3, 1)
@@ -160,14 +163,14 @@ class CNN(nn.Module):
             Inception(in_channels, out_channels, pool_features),
             # nn.Conv1d(in_channels, pool_features, 7),   #####solo para probar
             # N x 3*pool_features x 19
-            nn.MaxPool2d((1,3)),
+            nn.MaxPool1d(3),
             # N x 3*pool_features x 6
-            nn.Conv2d(3 * pool_features, pool_features, (1,1)),
+            nn.Conv1d(3 * pool_features, pool_features, 1),
             # N x pool_features x 6
             # nn.Flatten(start_dim=0, end_dim=-1),
             nn.Flatten(),
             # N x 3*pool_features*7
-            nn.Linear(pool_features * 18, pool_features * 2),
+            nn.Linear(pool_features * 8, pool_features * 2),
             nn.Dropout(p=0.5),
             nn.Linear(pool_features * 2, pool_features),
             nn.Softmax(dim=-1)
@@ -264,7 +267,7 @@ class CNN_candle(nn.Module):
 
 def main():
     # input = torch.tensor([[1., 2., 3., 4., 5., 6., 7., 8., 9., 10., 11., 12., 13., 14., 15.]])
-    input =  torch.ones(10,1,1, 62)
+    input =  torch.ones(4,1, 32)
     # print(input.dtype)
     # model_aux = nn.Conv1d()
     # model_aux0 = Conv1D_Candle()
@@ -274,7 +277,7 @@ def main():
     # out_aux = model_aux(out_aux0)
     # print('tttttttttttttttttt')
     # print(out_aux)
-    model = CNN(1, 3, 3)
+    model = CNN(1, 6, 6)
     # for name, param in model.named_parameters():
     #     print(name, param)
 

@@ -21,7 +21,7 @@ def compute_accuracy(predictions, y):
     # a2 = np.mean(np.equal(predictions.numpy(), y.numpy()))
     return np.mean(np.equal(predictions.numpy(), y.numpy()))
 
-def train_model(train_data, dev_data, model, lr=0.01, momentum=0.9, nesterov=False, n_epochs=6):
+def train_model(train_data, dev_data, model, lr=0.01, momentum=0.9, nesterov=False, n_epochs=8):
     """Train a model for N epochs given data and hyper-params."""
     # We optimize with SGD
     optimizer = torch.optim.SGD(model.parameters(), lr=lr, momentum=momentum, nesterov=nesterov)
@@ -40,7 +40,7 @@ def train_model(train_data, dev_data, model, lr=0.01, momentum=0.9, nesterov=Fal
         val_loss, val_acc = run_epoch(dev_data, model.eval(), optimizer)
         print('Val loss:   {:.6f} | Val accuracy:   {:.6f}'.format(val_loss, val_acc))
         # Save model
-        torch.save(model, 'neural_network_v1.pt')
+        torch.save(model, 'neural_network_v2.pt')
     return val_acc
 
 def run_epoch(data, model, optimizer):
