@@ -122,7 +122,7 @@ def random_tensor(dim0: int, dim1: int):
 
 def normalization(data: Tensor) -> Tensor:
     std, mean = torch.std_mean(data, dim=-1)
-    data = torch.cat([torch.tensor(np.random.uniform(low= torch.min(data), high=torch.max(data), size=(32 - data.shape[-1]))).reshape(1,-1), data], dim=-1)
+    data = torch.cat([torch.tensor(np.random.uniform(low= torch.min(data), high=torch.max(data), size=(31 - data.shape[-1]))).reshape(1,-1), data], dim=-1)
     output = (data - mean) / std
     return output
 
@@ -180,7 +180,7 @@ def data_generator(pattern_templates: Tensor, data_size: int, filename: str) -> 
         # for _ in range(4):
 
         if random_pattern == 6:
-            out = torch.rand(1,32, dtype=torch.float32)
+            out = torch.rand(1,31, dtype=torch.float32)
         else:
                 # random_stride = 5
             out = synthetic_data(pattern_templates[random_pattern], random_stride=random_stride)
@@ -313,23 +313,25 @@ if __name__ == '__main__':
     # output4 = noise_adding(output3)
     # print(output4)
 
-    filename2 = 'synthetic_data_v25'
+    filename2 = 'synthetic_data_v26'
     data_generator(templates, 30000, filename2)
     X_data, Y_data = load_data(filename2)
-    print(X_data[25], Y_data[25])
+    # print(X_data[25], Y_data[25])
     # X_test = X_data
 
     # one_data = X_data[0,0]
     # h = transform_data(one_data)
     # print(h.shape)
     # print(h)
-    x = torch.linspace(0,31,steps=32)
-    plt.plot(x, X_data[2,0].reshape(-1))
-    # plt.plot(x, X_data[25,0,1].reshape(-1))
-    # plt.plot(x, X_data[25,0,2].reshape(-1))
-    # plt.plot(x, X_data[25,0,3].reshape(-1))
-    plt.show()
-
+    n=10
+    for i in range(n, n + 10):
+        x = torch.linspace(0,30,steps=31)
+        plt.plot(x, X_data[i,0].reshape(-1))
+        # plt.plot(x, X_data[25,0,1].reshape(-1))
+        # plt.plot(x, X_data[25,0,2].reshape(-1))
+        # plt.plot(x, X_data[25,0,3].reshape(-1))
+        plt.show()
+        time.sleep(10)
     # for n in range(0,10):
     #     X_data = X_test[n, 0]
     # #     b = Y_test[n]

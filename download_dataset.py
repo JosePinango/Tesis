@@ -141,17 +141,18 @@ def recognition_pattern(ticker, model):
     with open(ticker + '.pt', 'wb') as f:
         torch.save(data_adj_close, f)
     aapl = load_data(ticker)
-    aapl = torch.Tensor(aapl.values)
-    aapl = normalization(aapl)
+    data = torch.Tensor(aapl.values)
+    dates = aapl.index
+    aapl = normalization(data)
     # aapl= aapl.type(torch.float64)
     # aapl = torch.rand(10000)
     i = 0
     list_patterns = []
     list_labels = []
     while i < aapl.shape[-1]:
-        subsequence = aapl[i:i + 32]
-
-        if len(subsequence) > 31:
+        subsequence = aapl[i:i + 31]
+        dates_aux = dates[i]
+        if len(subsequence) > 30:
 
             # print(i)
 
@@ -161,8 +162,9 @@ def recognition_pattern(ticker, model):
             prediction = torch.argmax(output, dim=-1)
             label = prediction.item()
             print(f'Label: {prediction}')
-            if label != 6 and output[0, label] > 0.97:
+            if label != 6 and output[0, label] > 0.99:
                 print(f'Probability: {output[0, label].item()}')
+                print(f'End date: {dates_aux}')
                 i = i + 31
 
                 # print(f'Nuevo índice: {i}')

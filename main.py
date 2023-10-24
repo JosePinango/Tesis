@@ -9,10 +9,11 @@ import plotly.graph_objects as go
 # from Download_Real_Data.download_dataset import recognition_pattern
 from download_dataset import recognition_pattern
 import time
+import time_series
 
 def main():
     # Load data
-    X_train, Y_train = load_data('synthetic_data_v25')
+    X_train, Y_train = load_data('synthetic_data_v26')
     X_train = X_train.type(torch.float32)
     # X_test, Y_test = load_data('Download_Real_Data/real_data_v5')
     X_data = load_data('Download_Real_Data/AAPL')
@@ -115,7 +116,7 @@ def main():
     dev_batches = batchify_data(X_dev, Y_dev, batch_size)
     # test_batches = batchify_data(X_test, Y_test, batch_size)
     #### Aqui falta test data ######
-    model = CNN(1, 7,7)
+    model = CNN(1, 1,7)
     train_model(train_batches, dev_batches, model, nesterov=True)
     # trained_model = CNN(1, 6,6)
     # trained_model.load_state_dict(torch.load('neural_network_v2.pt'))
@@ -132,21 +133,29 @@ def main():
     #     if len(aapl[i:i + 62]) > 61:
     #         print(i)
     #         print(model(aapl[i:i + 62].reshape(1,1,1,-1)))
-    ticker = 'AMZN'
+    ticker = 'JPM'
+
+    # data = time_series.read_ts_from_ibdb(ticker, '1 day', None, '2023-08-31', last=2000)
+    # data_adj_close = data[0]['adj_close']
+    # # data = torch.stack([data_open, data_high, data_low, data_close])
+    # with open(ticker + '.pt', 'wb') as f:
+    #     torch.save(data_adj_close, f)
+
     recognition_pattern(ticker, model.eval())
     patterns = load_data(ticker)
     print(patterns)
     labels = patterns[1]
     patterns = patterns[0]
-
+    pattern_titles = ['wedge_rising', 'head_and_shoulders', 'cup_with_handle', 'triangle_ascending', 'triple_tops',
+                         'double_bottoms']
     n = patterns.shape[0]
-    x = torch.linspace(0, 31, steps=32)
+    x = torch.linspace(0, 30, steps=31)
     for i in range(n):
     #     plt.plot(x, X_test[n, 0, 0].reshape(-1))
     #     plt.plot(x, X_test[n, 0, 1].reshape(-1))
     #     plt.plot(x, X_test[n, 0, 2].reshape(-1))
         plt.plot(x, patterns[i, 0].reshape(-1))
-        plt.title(str(labels[i].item()))
+        plt.title(pattern_titles[labels[i].item()])
         plt.show()
         time.sleep(5)
     # model1 = model.eval()

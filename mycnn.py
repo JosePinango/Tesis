@@ -41,9 +41,9 @@ class CauDilConv1D(nn.Module):
         # n=0
 
     def _convolution(self, x: Tensor) -> Tensor:
-        if self.causal_padding is not None:
-            # self.causal_padding = 0
-            x = F.pad(x, (self.causal_padding, 0))
+        # if self.causal_padding is not None:
+        #     # self.causal_padding = 0
+        #     x = F.pad(x, (self.causal_padding, 0))
 
             # x = x.type(torch.float64)
             # x2
@@ -64,6 +64,9 @@ class CauDilConv1D(nn.Module):
         # return torch.stack(conv1d_output, dim=1).transpose(1, 2)
         # return torch.cat(conv1d_output,dim=-1) #.transpose(0,1)
         # return output
+        if self.causal_padding is not None:
+            # self.causal_padding = 0
+            conv1d_output = F.pad(conv1d_output, (self.causal_padding, 0))
         return conv1d_output
 
     def forward(self, x: Tensor) -> Tensor:
@@ -163,14 +166,14 @@ class CNN(nn.Module):
             Inception(in_channels, out_channels, pool_features),
             # nn.Conv1d(in_channels, pool_features, 7),   #####solo para probar
             # N x 3*pool_features x 19
-            nn.MaxPool1d(3),
+            nn.MaxPool1d(2),
             # N x 3*pool_features x 6
             nn.Conv1d(3 * pool_features, pool_features, 1),
             # N x pool_features x 6
             # nn.Flatten(start_dim=0, end_dim=-1),
             nn.Flatten(),
             # N x 3*pool_features*7
-            nn.Linear(pool_features * 8, pool_features * 2),
+            nn.Linear(pool_features * 12, pool_features * 2),
             nn.Dropout(p=0.5),
             nn.Linear(pool_features * 2, pool_features),
             nn.Softmax(dim=-1)
