@@ -167,6 +167,7 @@ class CNN(nn.Module):
             # nn.Conv1d(in_channels, pool_features, 7),   #####solo para probar
             # N x 3*pool_features x 19
             nn.MaxPool1d(2),
+            # nn.AvgPool1d(2),
             # N x 3*pool_features x 6
             nn.Conv1d(3 * pool_features, pool_features, 1),
             # N x pool_features x 6

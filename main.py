@@ -1,6 +1,6 @@
 import numpy as np
 import torch
-from syndata import load_data, vec_normalization, normalization, normalization64, normalization_real, transform_database
+from syndata import load_data, vec_normalization, normalization, normalization64, normalization_real, transform_database, normalization_realdata
 from utils import batchify_data, train_model, run_epoch
 from mycnn import CNN
 import matplotlib.pyplot as plt
@@ -12,11 +12,33 @@ import time
 import time_series
 
 def main():
+    # ticker = 'MSFT'
+    # data_sp500 = load_data('data_sp500')
+    # aapl = data_sp500[ticker]
+    # data_aux = aapl[aapl.index <= '2019-09-16']
+    # data_aux = data_aux[-31:]
+    # data = torch.Tensor(aapl.values)
+    # dates = aapl.index
+
     # Load data
-    X_train, Y_train = load_data('synthetic_data_v26')
+    X_train, Y_train = load_data('synthetic_data_v31')
     X_train = X_train.type(torch.float32)
-    # X_test, Y_test = load_data('Download_Real_Data/real_data_v5')
-    X_data = load_data('Download_Real_Data/AAPL')
+    # X_test, Y_test = load_data('real_data_05nov23')
+    # print(X_test)
+    # print(X_test.shape)
+    # print(Y_test)
+    # norm_list = []
+    # for i in range(X_test.shape[0]):
+    #     norm_datatest = normalization_realdata(X_test[i])
+    #     norm_list.append(norm_datatest)
+    # print(norm_list)
+    # X_test = torch.stack(norm_list)
+    # X_test = normalization_realdata(X_test)
+    # print('after normalization')
+    # print(X_test)
+    # print(X_test.shape)
+    # print(Y_test)
+    # X_data = load_data('Download_Real_Data/AAPL')
     # X_train = transform_database(X_train)
     #
     # permutation = torch.randperm(X_test.shape[0])
@@ -116,7 +138,7 @@ def main():
     dev_batches = batchify_data(X_dev, Y_dev, batch_size)
     # test_batches = batchify_data(X_test, Y_test, batch_size)
     #### Aqui falta test data ######
-    model = CNN(1, 1,7)
+    model = CNN(1, 7,7)
     train_model(train_batches, dev_batches, model, nesterov=True)
     # trained_model = CNN(1, 6,6)
     # trained_model.load_state_dict(torch.load('neural_network_v2.pt'))
@@ -133,13 +155,24 @@ def main():
     #     if len(aapl[i:i + 62]) > 61:
     #         print(i)
     #         print(model(aapl[i:i + 62].reshape(1,1,1,-1)))
-    ticker = 'JPM'
+    # ticker = 'MSFT'
+    ticker = 'RCL'
 
     # data = time_series.read_ts_from_ibdb(ticker, '1 day', None, '2023-08-31', last=2000)
     # data_adj_close = data[0]['adj_close']
     # # data = torch.stack([data_open, data_high, data_low, data_close])
     # with open(ticker + '.pt', 'wb') as f:
     #     torch.save(data_adj_close, f)
+    # date_end = '2019-09-16' #MSFT
+    # date_end = '2022-09-23' #RCL
+    # data_sp500 = load_data('data_sp500')
+    # aapl = data_sp500[ticker]
+    # data_aux = aapl[aapl.index <= date_end]
+    # data_aux = data_aux[-31:]
+    # data = torch.Tensor(data_aux.values).reshape(1,1,-1)
+    # dates = data_aux.index
+    # pred = model(data)
+    # print(f'Symbol: {ticker}, End date: {date_end}, Prediction: {pred} >> wedge_rising--head_and_shoulders--cup_with_handle--triangle_ascending--triple_tops--double_bottoms_eve_adam')
 
     recognition_pattern(ticker, model.eval())
     patterns = load_data(ticker)
@@ -147,7 +180,7 @@ def main():
     labels = patterns[1]
     patterns = patterns[0]
     pattern_titles = ['wedge_rising', 'head_and_shoulders', 'cup_with_handle', 'triangle_ascending', 'triple_tops',
-                         'double_bottoms']
+                         'double_bottoms_eve_adam']
     n = patterns.shape[0]
     x = torch.linspace(0, 30, steps=31)
     for i in range(n):
@@ -186,6 +219,27 @@ def main():
     # plt.ylabel('Prediction')
     # plt.title('Confusion Matrix')
     # plt.show()
+    list_dates = ['2019-09-16', '2022-09-23']
+    list_symbols = ['MSFT', 'RCL']
+    for i in range(len(list_symbols)):
+        ticker = list_symbols[i]
+        date_end = list_dates[i]
+        data_sp500 = load_data('data_sp500')
+        aapl = data_sp500[ticker]
+        data_aux = aapl[aapl.index <= date_end]
+        data_aux = data_aux[-31:]
+        data = torch.Tensor(data_aux.values).reshape( 1, -1)
+        data = normalization(data).reshape(1,1,-1)
+        # dates = data_aux.index
+        pred = model(data)
+        print(f'Symbol: {ticker}, End date: {date_end}, Prediction: {pred} >> wedge_rising--head_and_shoulders--cup_with_handle--triangle_ascending--triple_tops--double_bottoms_eve_adam')
+
+        x = torch.linspace(0, 30, steps=31)
+        plt.plot(x, data[0, 0].reshape(-1))
+        plt.title('Head and shoulders tops')
+        plt.show()
+        time.sleep(5)
+
 #
 
 
