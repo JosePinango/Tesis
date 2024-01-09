@@ -29,14 +29,15 @@ def normalization(data: Tensor) -> Tensor:
 
 
 def main():
-    filename = 'eve_adam'
+    filename = 'head_shoulders'
     # if __name__ == '__main__':
     # def download_dataset():
     # pattern_templates = ['Pipe bottom', 'Triangle, symmetrical', 'Pipe top', 'Double Bottom, Adam and Adam',
     #                      'Ugly double bottom', 'Double Top, Adam and Adam', 'Head-and-shoulders bottom',
     #                      'Dead-cat bounce', 'Triple bottom', 'Triple top']
     # pattern_templates = ['Head-and-shoulders top', 'Triangle, ascending', 'Triple top', 'Double Bottom, Eve and Adam']
-    pattern_templates = ['Rising wedge', 'Head-and-shoulders top', 'Cup with handle', 'Triangle, ascending', 'Double Bottom, Eve and Adam']
+    # pattern_templates = ['Rising wedge', 'Head-and-shoulders top', 'Cup with handle', 'Triangle, ascending', 'Double Bottom, Eve and Adam']
+    pattern_templates = ['Head-and-shoulders top', 'Cup with handle', 'Triangle, ascending']
     dataset = []
     label_set = []
     ticker_fail = []
@@ -131,10 +132,10 @@ def main():
     # with open('all_patterns.pt', 'wb') as f:
     #     torch.save(label_aux_list, f)
 
-    with open(filename + '_v1.pt', 'wb') as f:
+    with open(filename + '_v2.pt', 'wb') as f:
         torch.save((real_data, real_label), f)
 
-    with open('symbols_not_found_' + filename + '.csv', 'w') as f:
+    with open('symbols_not_found_v2' + filename + '.csv', 'w') as f:
         writer = csv.writer(f)
         for row in ticker_fail:
             writer.writerow(row)
@@ -173,7 +174,7 @@ def recognition_pattern(ticker, model):
             prediction = torch.argmax(output, dim=-1)
             label = prediction.item()
             print(f'Label: {prediction}')
-            if label != 6 and output[0, label] > 0.99:
+            if label != 5 and output[0, label] > 0.99:
                 print(f'Probability: {output[0, label].item()}')
                 print(f'End date: {dates_aux}')
                 i = i - 31
@@ -222,7 +223,9 @@ def download_data_sp500(number_bar: int = 2000, end_date: str = '2023-10-27', fi
     print(dict_data_sp500)
     print(not_founded_sp500)
 
+
 if __name__ == '__main__':
+    main()
     # ticker = 'AMZN'
     # data = time_series.read_ts_from_ibdb(ticker, '1 day', None, '2023-08-31', last=2000)
     # # data_open = data[0]['open']
@@ -249,4 +252,4 @@ if __name__ == '__main__':
     # data = load_data('data_sp500')
     # print(data['AAPL'])
 
-    main()
+

@@ -21,8 +21,45 @@ def main():
     # dates = aapl.index
 
     # Load data
-    X_train, Y_train = load_data('synthetic_data_v31')
-    X_train = X_train.type(torch.float32)
+    X_train, Y_train = load_data('all_data_v3')
+    # X_train = X_train.type(torch.float32)
+    data_sp500 = load_data('data_sp500')
+    symbols_list = load_data('sp500')
+    list_random = []
+    for symbol in symbols_list[:50]:
+        aapl = data_sp500[symbol]
+        data_aux = aapl[aapl.index <= '2023-09-23']
+
+        i=0
+        print(data_aux.size)
+        while i < data_aux.size - 31:
+            data_aux1 = data_aux[i:i+31]
+            data = torch.Tensor(data_aux1.values).reshape(1, -1)
+            data = normalization(data).reshape(1, 1, -1)
+            list_random.append(data)
+            i += 31
+    X_random = torch.cat(list_random)
+
+
+    # SP500_data = load_data('data_sp500')
+
+
+
+
+    print(X_random.shape)
+    # time.sleep(30)
+
+
+    Y_random = torch.full((X_random.shape[0],1,1), 5)
+    X_train = torch.cat([X_train, X_random])
+    Y_train = torch.cat([Y_train, Y_random])
+    permutation = torch.randperm(X_train.shape[0])
+    X_train = X_train[permutation]
+    Y_train = Y_train[permutation]
+    print(X_train)
+    print(Y_train)
+    print(X_train.shape)
+    print(Y_train.shape)
     # X_test, Y_test = load_data('real_data_05nov23')
     # print(X_test)
     # print(X_test.shape)
@@ -130,6 +167,7 @@ def main():
     permutation = torch.randperm(X_train.shape[0])
     X_train = X_train[permutation]
     Y_train = Y_train[permutation]
+
     # print(X_train, Y_train)
 
     # Split dataset into batches
@@ -138,7 +176,7 @@ def main():
     dev_batches = batchify_data(X_dev, Y_dev, batch_size)
     # test_batches = batchify_data(X_test, Y_test, batch_size)
     #### Aqui falta test data ######
-    model = CNN(1, 7,7)
+    model = CNN(1, 4,4)
     train_model(train_batches, dev_batches, model, nesterov=True)
     # trained_model = CNN(1, 6,6)
     # trained_model.load_state_dict(torch.load('neural_network_v2.pt'))
@@ -179,8 +217,8 @@ def main():
     print(patterns)
     labels = patterns[1]
     patterns = patterns[0]
-    pattern_titles = ['wedge_rising', 'head_and_shoulders', 'cup_with_handle', 'triangle_ascending', 'triple_tops',
-                         'double_bottoms_eve_adam']
+    pattern_titles = ['wedge_rising', 'head_and_shoulders', 'cup_with_handle', 'triangle_ascending',
+                         'double_bottoms_eve_adam', 'random']
     n = patterns.shape[0]
     x = torch.linspace(0, 30, steps=31)
     for i in range(n):

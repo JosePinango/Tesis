@@ -80,26 +80,27 @@ class CauDilConv1D(nn.Module):
 class Inception(nn.Module):
     def __init__(self, in_channels: int, out_channels: int, pool_features: int, conv1D: Optional[Callable[..., nn.Module]] = None) -> None:
         super().__init__()
+        activation = nn.ReLU
         if conv1D is None:
             conv1D = CauDilConv1D
         self.mod7_1 = conv1D(in_channels, out_channels, in_channels, 3, 1)
-        self.mod7_2 = nn.ReLU()
+        self.mod7_2 = activation()
         self.mod7_3 = conv1D(out_channels, pool_features, out_channels,3, 2)
-        self.mod7_4 = nn.ReLU()
+        self.mod7_4 = activation()
 
         self.mod10_1 = conv1D(in_channels, out_channels, in_channels,3, 1)
-        self.mod10_2 = nn.ReLU()
+        self.mod10_2 = activation()
         self.mod10_3 = conv1D(out_channels, out_channels*2, out_channels,3, 2)
-        self.mod10_4 = nn.ReLU()
+        self.mod10_4 = activation()
         self.mod10_5 = conv1D(out_channels*2, pool_features, out_channels*2,2, 4, causal_padding=8)
-        self.mod10_6 = nn.ReLU()
+        self.mod10_6 = activation()
 
         self.mod15_1 = conv1D(in_channels, out_channels, in_channels, 3, 1)
-        self.mod15_2 = nn.ReLU()
+        self.mod15_2 = activation()
         self.mod15_3 = conv1D(out_channels, out_channels*2, out_channels,3, 2)
-        self.mod15_4 = nn.ReLU()
+        self.mod15_4 = activation()
         self.mod15_5 = conv1D(out_channels*2, pool_features, out_channels*2, 3, 4, causal_padding=8)
-        self.mod15_6 = nn.ReLU()
+        self.mod15_6 = activation()
 
         # self.mod19_1 = conv1D(in_channels, 6 * 2, 3, 1)
         # self.mod19_2 = nn.ReLU()

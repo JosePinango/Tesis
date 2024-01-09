@@ -5,6 +5,8 @@ from tqdm import tqdm
 import numpy as np
 import torch.nn.functional as F
 
+from tslearn.metrics import SoftDTWLossPyTorch
+
 
 # def data_labeling()
 
@@ -21,7 +23,7 @@ def compute_accuracy(predictions, y):
     # a2 = np.mean(np.equal(predictions.numpy(), y.numpy()))
     return np.mean(np.equal(predictions.numpy(), y.numpy()))
 
-def train_model(train_data, dev_data, model, lr=0.005, momentum=0.9, nesterov=False, n_epochs=4):
+def train_model(train_data, dev_data, model, lr=0.01, momentum=0.9, nesterov=False, n_epochs=20):
     """Train a model for N epochs given data and hyper-params."""
     # We optimize with SGD
     optimizer = torch.optim.SGD(model.parameters(), lr=lr, momentum=momentum, nesterov=nesterov)
@@ -70,6 +72,8 @@ def run_epoch(data, model, optimizer):
         # print(batch_accuracies)
 
         # Compute loss
+        # loss_function = SoftDTWLossPyTorch(gamma=0.1)
+        # loss = loss_function(out.reshape(1,1,-1), y.reshape(1,1,-1)).mean()
         loss = F.cross_entropy(out, y.reshape(-1))
         losses.append(loss.data.item())
 

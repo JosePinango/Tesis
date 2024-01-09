@@ -348,39 +348,88 @@ def homotopy(Tensor, filename: str):
         torch.save(homotopy_tensor, f)
 
 
+def barycentric_coordinates(pattern_name: str, indexes: List):
+    X_data, Y_data = load_data(pattern_name + '_v1')
+    n = len(indexes)
+    coordinates = np.random.randint(1,high=100,size=n)
+    print(coordinates)
+    aux = np.sum(coordinates)
+    norm_coordinates = (1/aux) * coordinates
+    # print(norm_coordinates)
+    proof = np.sum(norm_coordinates)
+    print(proof)
+
+    X_data = X_data[indexes].numpy()
+    print(X_data)
+    new_tensor = np.zeros(31)
+    for i in range(n):
+        data = X_data[i,0]
+        mean = np.mean(data)
+        std = np.std(data)
+        norm_pattern = (data-mean)/std
+        new_tensor += norm_coordinates[i] * norm_pattern
+        print(new_tensor)
+        plt.plot(np.arange(0,31,1, dtype=int), norm_pattern)
+        plt.title('Pattern ' + str(i))
+        plt.show()
+        time.sleep(5)
+    plt.plot(np.arange(0, 31, 1, dtype=int), new_tensor)
+    plt.title('Combination')
+    plt.show()
+    time.sleep(5)
+
+
+
 if __name__ == '__main__':
-    list_filename = ['wedge_rising', 'head_shoulders', 'cup_handle', 'triangle_ascending', 'eve_adam']
-    list_homotopy_Xdata = []
-    list_Ydata = []
-    for filename in list_filename:
-        # filename = 'head_shoulders'
-        X_data, Y_data = load_data(filename + '_v1')
+    list_filename = ['head_shoulders', 'cup_handle', 'triangle_ascending']
+    list_index = [[0, 1, 4, 6, 7, 8, 9, 10, 12], [0, 1, 2, 3, 4, 5, 6, 7, 8, 10],
+                  [0, 4, 5, 6, 9]]
+    barycentric_coordinates('head_shoulders', list_index[0])
+    # list_filename = ['wedge_rising', 'head_shoulders', 'cup_handle', 'triangle_ascending', 'eve_adam']
+    # list_index = [[1,2,3,5,6,8,9,11,12], [0,1,4,6,7,8,9,10,12],[0,1,2,3,4,5,6,7,8,10],[0,4,5,6,9],[2,4]]
+    # list_homotopy_Xdata = []
+    # list_Ydata = []
+    # for index, filename in zip(list_index, list_filename):
+    #     # filename = 'head_shoulders'
+    #     X_data, Y_data = load_data(filename + '_v1')
+    #     # x = torch.linspace(0, 30, steps=31)
+    #     # num = [0, 10, 20, 30, 40, 50, 60, 70, 80, 90, -1]
+    #     # for i in range(0, X_data.shape[0], 1):
+    #     #     plt.plot(x, X_data[i].reshape(-1))
+    #     #     plt.title(filename + ' Pattern ' + str(i))
+    #     #     plt.show()
+    #     #     time.sleep(15)
+    # #
+    #     print(X_data)
+    #     filename2 = 'homotopy' + filename + '_v3'
+    #     homotopy(X_data[index], filename2)
+    #     data = load_data(filename2)
+    #     valueY = Y_data[0, 0, 0]
+    #     Y_label = torch.full((data.shape[0], 1, 1), valueY)
+    #     list_Ydata.append(Y_label)
+    #     print(Y_label)
+    #     print(data)
+    #     list_homotopy_Xdata.append(data)
+    #
+    # X_all_data = torch.cat(list_homotopy_Xdata)
+    # Y_all_data = torch.cat(list_Ydata)
+    # with open('all_data_v3.pt', 'wb') as f:
+    #     torch.save((X_all_data, Y_all_data), f)
+    #
+    #
+    # X1, Y1 = load_data('all_data_v3')
+    # print(X1.shape)
+    # print(Y1.shape)
+    #
+    # x = torch.linspace(0, 30, steps=31)
+    # # num = [0, 10, 20, 30, 40, 50, 60, 70, 80, 90, -1]
+    # for i in range(0,X1.shape[0],250):
+    #     plt.plot(x, X1[i].reshape(-1))
+    #     plt.title('Pattern ' + str(i))
+    #     plt.show()
+    #     time.sleep(3)
+    #
 
-        print(X_data)
-        filename2 = 'homotopy' + filename + '_v1'
-        homotopy(X_data, filename2)
-        data = load_data(filename2)
-        valueY = Y_data[0, 0, 0]
-        Y_label = torch.full((data.shape[0], 1, 1), valueY)
-        list_Ydata.append(Y_label)
-        print(Y_label)
-        print(data)
-        list_homotopy_Xdata.append(data)
-        # x = torch.linspace(0, 30, steps=31)
-        # num = [0, 10, 20, 30, 40, 50, 60, 70, 80, 90, -1]
-        # for i in range(0,data.shape[0],10):
-        #     plt.plot(x, data[i].reshape(-1))
-        #     plt.title('Pattern ' + str(i))
-        #     plt.show()
-        #     time.sleep(3)
-    X_all_data = torch.cat(list_homotopy_Xdata)
-    Y_all_data = torch.cat(list_Ydata)
-    with open('all_data.pt', 'wb') as f:
-        torch.save((X_all_data, Y_all_data), f)
-
-    X1, Y1 = load_data('all_data')
-    print(X1.shape)
-    print(Y1.shape)
     # filename = 'pattern_templates_v3'
     # pattern_templates(filename)
     # templates = load_data(filename)
