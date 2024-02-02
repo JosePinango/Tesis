@@ -10,6 +10,7 @@ import matplotlib.pyplot as plt
 import torch.nn.functional as F
 import pandas as pd
 import plotly.graph_objects as go
+from scipy import linalg
 
 
 def time_scaling(pat_temp_length, stride: int = 5) -> Tuple[int, int]:
@@ -351,16 +352,17 @@ def homotopy(Tensor, filename: str):
 def barycentric_coordinates(pattern_name: str, indexes: List):
     X_data, Y_data = load_data(pattern_name + '_v1')
     n = len(indexes)
-    coordinates = np.random.randint(1,high=100,size=n)
+    # coordinates = np.random.randint(1,high=100,size=n)
+    coordinates = np.ones(n)*1/n
     print(coordinates)
     aux = np.sum(coordinates)
     norm_coordinates = (1/aux) * coordinates
     # print(norm_coordinates)
     proof = np.sum(norm_coordinates)
-    print(proof)
+    # print(proof)
 
     X_data = X_data[indexes].numpy()
-    print(X_data)
+    # print(X_data)
     new_tensor = np.zeros(31)
     for i in range(n):
         data = X_data[i,0]
@@ -368,15 +370,82 @@ def barycentric_coordinates(pattern_name: str, indexes: List):
         std = np.std(data)
         norm_pattern = (data-mean)/std
         new_tensor += norm_coordinates[i] * norm_pattern
-        print(new_tensor)
-        plt.plot(np.arange(0,31,1, dtype=int), norm_pattern)
-        plt.title('Pattern ' + str(i))
-        plt.show()
-        time.sleep(5)
+        # print(new_tensor)
+        # plt.plot(np.arange(0,31,1, dtype=int), norm_pattern)
+        # plt.title('Pattern ' + str(i))
+        # plt.show()
+        # time.sleep(5)
     plt.plot(np.arange(0, 31, 1, dtype=int), new_tensor)
-    plt.title('Combination')
+    plt.title('Center pattern')
     plt.show()
     time.sleep(5)
+    t=1
+    data = X_data[0, 0]
+    mean = np.mean(data)
+    std = np.std(data)
+    norm_pattern = (data - mean) / std
+    plt.plot(np.arange(0, 31, 1, dtype=int), norm_pattern)
+    plt.title('Real pattern')
+    plt.show()
+    time.sleep(5)
+    aux = t*norm_pattern + (1-t)*new_tensor
+    plt.plot(np.arange(0, 31, 1, dtype=int), aux)
+    plt.title('Pattern out convex hull, t = ' + str(t))
+    plt.show()
+    time.sleep(5)
+
+
+def recognition_algorithm(pattern_name: str, indexes: List):
+    X_data, _ = load_data(pattern_name + '_v1')
+    X_data = X_data[indexes].numpy()
+    matrix = np.zeros((len(indexes),31))
+    for i in range(len(indexes)):
+        data = X_data[i,0]
+        mean = np.mean(data)
+        std = np.std(data)
+        norm_pattern = (data - mean) / std
+        matrix[i] = norm_pattern
+    # print(matrix)
+    # print(matrix.transpose())
+    data = X_data[1, 0]
+    mean = np.mean(data)
+    std = np.std(data)
+    norm_pattern = (data - mean) / std
+    data1 = X_data[4, 0]
+    mean1 = np.mean(data1)
+    std1 = np.std(data1)
+    norm_pattern1 = (data1 - mean1) / std1
+    rng = np.random.default_rng()
+    serie = rng.normal(0, 0.03, size=31)
+    # np.set_printoptions(precision=4)
+    # print(f'Gaussian Noise: {serie.round(decimals = 4)}')
+    # print(f'Gaussian Noise: {serie}')
+
+    bar_coordinates = linalg.lstsq(matrix.transpose(), 1/2*norm_pattern + 1/2*norm_pattern1)[0]
+    print(f'Barycentric coordinates: {bar_coordinates.round(decimals = 4)}')
+    print(bar_coordinates.sum())
+    bar_coordinates1 = linalg.lstsq(matrix.transpose(), 1 / 2 * norm_pattern + 1 / 2 * norm_pattern1 + serie)[0]
+    print(f'Barycentric coordinates with noise: {bar_coordinates1.round(decimals = 5)}')
+    print(bar_coordinates1.sum())
+    X_syn, Y_syn = load_data('synthetic_data_v32')
+    p1 = Y_syn == 1
+    p1 = p1.reshape(-1)
+    # print(p1)
+    # print(X_syn)
+    # print(Y_syn)
+    X_new = X_syn[p1]
+    X_new = X_new[0].reshape(-1)
+    X_new = X_new.numpy()
+
+    bar_coordinates = linalg.lstsq(matrix.transpose(), X_new)[0]
+    print(bar_coordinates)
+    print(bar_coordinates.sum())
+    # print(X_new)
+    # plt.plot(np.arange(0, 31, 1, dtype=int), X_new[100].reshape(-1))
+    # plt.title('Pattern')
+    # plt.show()
+    # time.sleep(5)
+
 
 
 
@@ -384,7 +453,11 @@ if __name__ == '__main__':
     list_filename = ['head_shoulders', 'cup_handle', 'triangle_ascending']
     list_index = [[0, 1, 4, 6, 7, 8, 9, 10, 12], [0, 1, 2, 3, 4, 5, 6, 7, 8, 10],
                   [0, 4, 5, 6, 9]]
-    barycentric_coordinates('head_shoulders', list_index[0])
+    # for i in range(1):
+    #     print(str(i))
+    #     barycentric_coordinates('head_shoulders', list_index[0])
+    recognition_algorithm('head_shoulders', list_index[0])
+
     # list_filename = ['wedge_rising', 'head_shoulders', 'cup_handle', 'triangle_ascending', 'eve_adam']
     # list_index = [[1,2,3,5,6,8,9,11,12], [0,1,4,6,7,8,9,10,12],[0,1,2,3,4,5,6,7,8,10],[0,4,5,6,9],[2,4]]
     # list_homotopy_Xdata = []

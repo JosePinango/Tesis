@@ -14,6 +14,7 @@ import time
 from Download_Real_Data import time_series
 from syndata import load_data
 from mycnn import CNN
+import matplotlib.pyplot as plt
 
 
 def downloader(ticker: str, start_date: str, end_date: str) -> Tensor:
@@ -29,7 +30,7 @@ def normalization(data: Tensor) -> Tensor:
 
 
 def main():
-    filename = 'head_shoulders'
+    filename = 'cup_handle'
     # if __name__ == '__main__':
     # def download_dataset():
     # pattern_templates = ['Pipe bottom', 'Triangle, symmetrical', 'Pipe top', 'Double Bottom, Adam and Adam',
@@ -59,12 +60,12 @@ def main():
 
                 # start_date = (datetime.strptime(row[4], '%m/%d/%Y') - relativedelta(months=4)).strftime('%Y-%m-%d')
                 # end_date = datetime.strptime(row[4], '%m/%d/%Y').strftime('%Y-%m-%d')
-                end_date = (datetime.strptime(row[-1], '%m/%d/%Y') + relativedelta(days=0)).strftime('%Y-%m-%d')
+                end_date = (datetime.strptime(row[-1], '%m/%d/%Y') + relativedelta(days=7)).strftime('%Y-%m-%d')
                 ticker = row[0]
                 # print(f'ticker {ticker}')
                 # data = downloader(row[0], start_date=start_date, end_date=end_date)
                 try:
-                    data = time_series.read_ts_from_ibdb(row[0], '1 day', None, end_date, last=31)
+                    data = time_series.read_ts_from_ibdb(row[0], '1 day', None, end_date, last=70)
                     # print(data)
                     # print(type(data))
                     # print(type(data[0]))
@@ -101,11 +102,18 @@ def main():
                         label = torch.tensor(pattern_templates.index(row[1]))
                     except ValueError:
                         label = torch.tensor(4)
-                    print(label)
-                    if data.shape[-1] == 31:
+                    print(f'Pattern: {filename}, label: {label}')
+                    if data.shape[-1] == 70:
                         dataset.append(data.reshape(1, -1))
 
                         label_set.append(label.reshape(1, -1))
+
+                    x = torch.linspace(0, 30, steps=70)
+                    plt.plot(x, data.reshape(-1))
+                    plt.title(filename + ' Pattern ')
+                    plt.show()
+                    time.sleep(15)
+
                 except (KeyError, TypeError):
                     ticker_fail.append(row)
                 # if value in np.arange(0,730, 25):
@@ -139,6 +147,19 @@ def main():
         writer = csv.writer(f)
         for row in ticker_fail:
             writer.writerow(row)
+
+def cut_head_shoulders(filename: str) -> None:
+    #(cut_s, cut_f, patt_s, patt_f, good_pattern=1)
+    indexes = [(33,64,8,31,1), (33, 64,5,31,1),(34,65,16,31,1), (33,64,8,31,0),(33,64,5,31,0), (33,64,12,31,1), (32,63,11,31,1),(27,58,7,31,1)]
+    with open(filename + '_v2.pt', 'rb') as f:
+        data = torch.load(f)
+        for i in range(data[0].shape[0]):
+            x = torch.linspace(0, 30, steps=31)
+            data_aux = data[0][i].reshape(-1)
+            plt.plot(x, data_aux[27:58])
+            plt.title(filename + ' Pattern ' + str(i))
+            plt.show()
+            time.sleep(10)
 
 def recognition_pattern(ticker, model):
     # data = time_series.read_ts_from_ibdb(ticker, '1 day', None, '2023-08-31', last=2000)
@@ -226,6 +247,7 @@ def download_data_sp500(number_bar: int = 2000, end_date: str = '2023-10-27', fi
 
 if __name__ == '__main__':
     main()
+    # cut_head_shoulders('head_shoulders')
     # ticker = 'AMZN'
     # data = time_series.read_ts_from_ibdb(ticker, '1 day', None, '2023-08-31', last=2000)
     # # data_open = data[0]['open']
