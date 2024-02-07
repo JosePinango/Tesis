@@ -30,7 +30,8 @@ def normalization(data: Tensor) -> Tensor:
 
 
 def main():
-    filename = 'cup_handle'
+    # filename = 'cup_handle'
+    filename = 'triangle_ascending'
     # if __name__ == '__main__':
     # def download_dataset():
     # pattern_templates = ['Pipe bottom', 'Triangle, symmetrical', 'Pipe top', 'Double Bottom, Adam and Adam',
@@ -148,18 +149,113 @@ def main():
         for row in ticker_fail:
             writer.writerow(row)
 
+
 def cut_head_shoulders(filename: str) -> None:
-    #(cut_s, cut_f, patt_s, patt_f, good_pattern=1)
-    indexes = [(33,64,8,31,1), (33, 64,5,31,1),(34,65,16,31,1), (33,64,8,31,0),(33,64,5,31,0), (33,64,12,31,1), (32,63,11,31,1),(27,58,7,31,1)]
+    # (cut_s, cut_f, patt_s, patt_f, good_pattern=1)
+    indexes = [(33, 64, 8, 31, 1), (33, 64, 5, 31, 1), (34, 65, 16, 31, 0), (33, 64, 8, 31, 0), (33, 64, 5, 31, 0),
+               (33, 64, 12, 31, 1), (32, 63, 11, 31, 1), (27, 58, 7, 31, 1), (34, 65, 7, 31, 1), (34, 65, 11, 31, 1),
+               (34, 65, 5, 31, 1), (31, 62, 20, 31, 0), (34, 65, 6, 31, 1)]
+    x = torch.linspace(0, 30, steps=31)
+    datalist = []
+    labellist= []
+    lengthlist = []
     with open(filename + '_v2.pt', 'rb') as f:
         data = torch.load(f)
         for i in range(data[0].shape[0]):
-            x = torch.linspace(0, 30, steps=31)
-            data_aux = data[0][i].reshape(-1)
-            plt.plot(x, data_aux[27:58])
-            plt.title(filename + ' Pattern ' + str(i))
-            plt.show()
-            time.sleep(10)
+            if indexes[i][4] == 1:
+                print(f'Pattern {i}, length: {indexes[i][3]-indexes[i][2]}')
+                print(data[0][i][0,indexes[i][0]:indexes[i][1]].reshape(1,-1))
+                datalist.append(data[0][i][0,indexes[i][0]:indexes[i][1]].reshape(1,-1))
+                print(data[1][i])
+                labellist.append(data[1][i])
+                length = torch.tensor(indexes[i][3]-indexes[i][2]).reshape(1, -1)
+                print(length)
+                lengthlist.append(length)
+                data_aux = data[0][i].reshape(-1)
+                plt.plot(x, data_aux[indexes[i][0]:indexes[i][1]])
+                plt.title(filename + ' Pattern ' + str(i))
+                plt.show()
+                time.sleep(3)
+    real_data = torch.stack(datalist)
+    real_label = torch.stack(labellist)
+    real_length = torch.stack(lengthlist)
+    print(real_data)
+    print(real_label)
+    print(real_length)
+
+    with open('head_shoulders_v3.pt', 'wb') as f:
+        torch.save((real_data, real_label, real_length), f)
+
+
+def cut_cup_handle(filename: str) -> None:
+    # (cut_s, cut_f, patt_s, patt_f, good_pattern=1)
+    indexes = [(34,65,3,31,1),(34,65,3,31,1),(33,64,7,31,0),(34,65,4,31,1),(34,65,4,31,1),(34,65,7,31,0),(34,65,3,31,1),(35,66,4,31,1),(34,65,4,31,1),(0,31,3,31,0),(35,66,9,31,1),(38,69,3,31,0)]
+    x = torch.linspace(0, 30, steps=31)
+    datalist = []
+    labellist= []
+    lengthlist = []
+    with open(filename + '_v2.pt', 'rb') as f:
+        data = torch.load(f)
+        for i in range(data[0].shape[0]):
+            if indexes[i][4] == 1:
+                print(f'Pattern {i}, length: {indexes[i][3]-indexes[i][2]}')
+                print(data[0][i][0,indexes[i][0]:indexes[i][1]].reshape(1,-1))
+                datalist.append(data[0][i][0,indexes[i][0]:indexes[i][1]].reshape(1,-1))
+                print(data[1][i])
+                labellist.append(data[1][i])
+                length = torch.tensor(indexes[i][3]-indexes[i][2]).reshape(1, -1)
+                print(length)
+                lengthlist.append(length)
+                data_aux = data[0][i].reshape(-1)
+                plt.plot(x, data_aux[indexes[i][0]:indexes[i][1]])
+                plt.title(filename + ' Pattern ' + str(i))
+                plt.show()
+                time.sleep(5)
+    real_data = torch.stack(datalist)
+    real_label = torch.stack(labellist)
+    real_length = torch.stack(lengthlist)
+    print(real_data)
+    print(real_label)
+    print(real_length)
+
+    with open('cup_handle_v3.pt', 'wb') as f:
+        torch.save((real_data, real_label, real_length), f)
+
+
+def cut_triangle_ascending(filename: str) -> None:
+    # (cut_s, cut_f, patt_s, patt_f, good_pattern=1)
+    indexes = [(39,70,6,31,1),(20,51,3,31,0),(29,60,9,31,1),(34,65,10,31,0),(39,70,6,31,1),(33,64,10,31,0),(35,66,14,31,1),(35,66,7,31,1),(38,69,5,31,1),(36,67,9,31,1),(35,66,11,31,1)]
+    x = torch.linspace(0, 30, steps=31)
+    datalist = []
+    labellist= []
+    lengthlist = []
+    with open(filename + '_v2.pt', 'rb') as f:
+        data = torch.load(f)
+        for i in range(data[0].shape[0]):
+            if indexes[i][4] == 1:
+                print(f'Pattern {i}, length: {indexes[i][3]-indexes[i][2]}')
+                print(data[0][i][0,indexes[i][0]:indexes[i][1]].reshape(1,-1))
+                datalist.append(data[0][i][0,indexes[i][0]:indexes[i][1]].reshape(1,-1))
+                print(data[1][i])
+                labellist.append(data[1][i])
+                length = torch.tensor(indexes[i][3]-indexes[i][2]).reshape(1, -1)
+                print(length)
+                lengthlist.append(length)
+                data_aux = data[0][i].reshape(-1)
+                plt.plot(x, data_aux[indexes[i][0]:indexes[i][1]])
+                plt.title(filename + ' Pattern ' + str(i))
+                plt.show()
+                time.sleep(5)
+    real_data = torch.stack(datalist)
+    real_label = torch.stack(labellist)
+    real_length = torch.stack(lengthlist)
+    print(real_data)
+    print(real_label)
+    print(real_length)
+
+    with open('triangle_ascending_v3.pt', 'wb') as f:
+        torch.save((real_data, real_label, real_length), f)
+
 
 def recognition_pattern(ticker, model):
     # data = time_series.read_ts_from_ibdb(ticker, '1 day', None, '2023-08-31', last=2000)
@@ -176,13 +272,13 @@ def recognition_pattern(ticker, model):
     # aapl= aapl.type(torch.float64)
     # aapl = torch.rand(10000)
     # i = 0
-    i = aapl.shape[-1]-1
+    i = aapl.shape[-1] - 1
     list_patterns = []
     list_labels = []
     # while i < aapl.shape[-1]:
-    while i>30:
+    while i > 30:
         # subsequence = aapl[i:i + 31]
-        subsequence = aapl[i-31:i]
+        subsequence = aapl[i - 31:i]
         subsequence = normalization(subsequence)
         dates_aux = dates[i]
         if len(subsequence) > 30:
@@ -195,14 +291,14 @@ def recognition_pattern(ticker, model):
             prediction = torch.argmax(output, dim=-1)
             label = prediction.item()
             print(f'Label: {prediction}')
-            if label != 5 and output[0, label] > 0.99:
+            if label != 3 and output[0, label] > 0.99:
                 print(f'Probability: {output[0, label].item()}')
                 print(f'End date: {dates_aux}')
                 i = i - 31
 
                 # print(f'Nuevo índice: {i}')
                 list_patterns.append(subsequence.reshape(1, -1))
-                list_labels.append(torch.Tensor(prediction).reshape( 1, -1))
+                list_labels.append(torch.Tensor(prediction).reshape(1, -1))
         i = i - 1
     patterns = torch.stack(list_patterns, dim=0)
     labels = torch.stack(list_labels, dim=0)
@@ -210,6 +306,7 @@ def recognition_pattern(ticker, model):
         torch.save((patterns, labels), f)
     print(patterns.shape)
     print(labels.shape)
+
 
 def list_symbols_sp500(filename: str = 'sp500'):
     with open(filename + '.csv', mode='r') as csv_file:
@@ -246,8 +343,10 @@ def download_data_sp500(number_bar: int = 2000, end_date: str = '2023-10-27', fi
 
 
 if __name__ == '__main__':
-    main()
+    # main()
     # cut_head_shoulders('head_shoulders')
+    # cut_cup_handle('cup_handle')
+    cut_triangle_ascending('triangle_ascending')
     # ticker = 'AMZN'
     # data = time_series.read_ts_from_ibdb(ticker, '1 day', None, '2023-08-31', last=2000)
     # # data_open = data[0]['open']
@@ -273,5 +372,3 @@ if __name__ == '__main__':
     # download_data_sp500()
     # data = load_data('data_sp500')
     # print(data['AAPL'])
-
-

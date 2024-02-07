@@ -349,19 +349,19 @@ def homotopy(Tensor, filename: str):
         torch.save(homotopy_tensor, f)
 
 
-def barycentric_coordinates(pattern_name: str, indexes: List):
-    X_data, Y_data = load_data(pattern_name + '_v1')
-    n = len(indexes)
-    # coordinates = np.random.randint(1,high=100,size=n)
-    coordinates = np.ones(n)*1/n
-    print(coordinates)
+def barycentric_coordinates(pattern_name: str):
+    X_data, Y_data, length_data = load_data(pattern_name + '_v3')
+    n = X_data.shape[0]
+    coordinates = np.random.randint(1,high=100,size=n)
+    # coordinates = np.ones(n)*1/n
+    # print(f'Random coordinates: {coordinates}')
     aux = np.sum(coordinates)
     norm_coordinates = (1/aux) * coordinates
-    # print(norm_coordinates)
+    # print(f'Normalized coordinates: {norm_coordinates}')
     proof = np.sum(norm_coordinates)
-    # print(proof)
+    # print(f'Sum coordinates: {proof}')
 
-    X_data = X_data[indexes].numpy()
+    X_data = X_data.numpy()
     # print(X_data)
     new_tensor = np.zeros(31)
     for i in range(n):
@@ -371,28 +371,32 @@ def barycentric_coordinates(pattern_name: str, indexes: List):
         norm_pattern = (data-mean)/std
         new_tensor += norm_coordinates[i] * norm_pattern
         # print(new_tensor)
-        # plt.plot(np.arange(0,31,1, dtype=int), norm_pattern)
-        # plt.title('Pattern ' + str(i))
-        # plt.show()
-        # time.sleep(5)
-    plt.plot(np.arange(0, 31, 1, dtype=int), new_tensor)
-    plt.title('Center pattern')
-    plt.show()
-    time.sleep(5)
-    t=1
-    data = X_data[0, 0]
-    mean = np.mean(data)
-    std = np.std(data)
-    norm_pattern = (data - mean) / std
-    plt.plot(np.arange(0, 31, 1, dtype=int), norm_pattern)
-    plt.title('Real pattern')
-    plt.show()
-    time.sleep(5)
-    aux = t*norm_pattern + (1-t)*new_tensor
-    plt.plot(np.arange(0, 31, 1, dtype=int), aux)
-    plt.title('Pattern out convex hull, t = ' + str(t))
-    plt.show()
-    time.sleep(5)
+        plt.plot(np.arange(0,31,1, dtype=int), norm_pattern)
+        plt.title('Pattern ' + str(i))
+        plt.show()
+        time.sleep(5)
+    # plt.plot(np.arange(0, 31, 1, dtype=int), new_tensor)
+    # plt.title('Synthetic pattern')
+    # plt.show()
+    # time.sleep(2)
+
+
+
+    # t=1
+    # data = X_data[0, 0]
+    # mean = np.mean(data)
+    # std = np.std(data)
+    # norm_pattern = (data - mean) / std
+    # plt.plot(np.arange(0, 31, 1, dtype=int), norm_pattern)
+    # plt.title('Real pattern')
+    # plt.show()
+    # time.sleep(5)
+    # aux = t*norm_pattern + (1-t)*new_tensor
+    # plt.plot(np.arange(0, 31, 1, dtype=int), aux)
+    # plt.title('Pattern out convex hull, t = ' + str(t))
+    # plt.show()
+    # time.sleep(5)
+    return torch.from_numpy(new_tensor).reshape(1,-1), Y_data[0]
 
 
 def recognition_algorithm(pattern_name: str, indexes: List):
@@ -451,12 +455,26 @@ def recognition_algorithm(pattern_name: str, indexes: List):
 
 if __name__ == '__main__':
     list_filename = ['head_shoulders', 'cup_handle', 'triangle_ascending']
-    list_index = [[0, 1, 4, 6, 7, 8, 9, 10, 12], [0, 1, 2, 3, 4, 5, 6, 7, 8, 10],
-                  [0, 4, 5, 6, 9]]
-    # for i in range(1):
+    # list_index = [[0, 1, 4, 6, 7, 8, 9, 10, 12], [0, 1, 2, 3, 4, 5, 6, 7, 8, 10],
+    #               [0, 4, 5, 6, 9]]
+    data_list = []
+    label_list =[]
+    for pattern_name in list_filename:
+        for i in range(5):
     #     print(str(i))
     #     barycentric_coordinates('head_shoulders', list_index[0])
-    recognition_algorithm('head_shoulders', list_index[0])
+    # recognition_algorithm('head_shoulders', list_index[0])
+            pattern, label = barycentric_coordinates(pattern_name)
+            data_list.append(pattern)
+            label_list.append(label)
+    # print(data_list)
+    # print(label_list)
+    syn_data = torch.stack(data_list)
+    syn_label = torch.stack(label_list)
+    print(syn_data.shape)
+    print(syn_label.shape)
+    with open('data3patterns_v2.pt', 'wb') as f:
+        torch.save((torch.Tensor(syn_data), torch.Tensor(syn_label)), f)
 
     # list_filename = ['wedge_rising', 'head_shoulders', 'cup_handle', 'triangle_ascending', 'eve_adam']
     # list_index = [[1,2,3,5,6,8,9,11,12], [0,1,4,6,7,8,9,10,12],[0,1,2,3,4,5,6,7,8,10],[0,4,5,6,9],[2,4]]

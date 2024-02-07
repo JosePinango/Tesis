@@ -21,23 +21,26 @@ def main():
     # dates = aapl.index
 
     # Load data
-    X_train, Y_train = load_data('all_data_v3')
-    # X_train = X_train.type(torch.float32)
+    X_train, Y_train = load_data('data3patterns_v1')
+    X_train = X_train.type(torch.float32)
     data_sp500 = load_data('data_sp500')
     symbols_list = load_data('sp500')
     list_random = []
-    for symbol in symbols_list[:50]:
-        aapl = data_sp500[symbol]
-        data_aux = aapl[aapl.index <= '2023-09-23']
+    for symbol in symbols_list[:90]:
+        try:
+            aapl = data_sp500[symbol]
+            data_aux = aapl[aapl.index <= '2023-09-23']
 
-        i=0
-        print(data_aux.size)
-        while i < data_aux.size - 31:
-            data_aux1 = data_aux[i:i+31]
-            data = torch.Tensor(data_aux1.values).reshape(1, -1)
-            data = normalization(data).reshape(1, 1, -1)
-            list_random.append(data)
-            i += 31
+            i=0
+            print(data_aux.size)
+            while i < data_aux.size - 31:
+                data_aux1 = data_aux[i:i+31]
+                data = torch.Tensor(data_aux1.values).reshape(1, -1)
+                data = normalization(data).reshape(1, 1, -1)
+                list_random.append(data)
+                i += 31
+        except KeyError:
+            pass
     X_random = torch.cat(list_random)
 
 
@@ -45,21 +48,21 @@ def main():
 
 
 
-
-    print(X_random.shape)
+    print(f'Size of X_random: {X_random.shape}')
+    # print(X_random)
     # time.sleep(30)
 
 
-    Y_random = torch.full((X_random.shape[0],1,1), 5)
+    Y_random = torch.full((X_random.shape[0],1,1), 3)
     X_train = torch.cat([X_train, X_random])
     Y_train = torch.cat([Y_train, Y_random])
     permutation = torch.randperm(X_train.shape[0])
     X_train = X_train[permutation]
     Y_train = Y_train[permutation]
-    print(X_train)
-    print(Y_train)
-    print(X_train.shape)
-    print(Y_train.shape)
+    # print(X_train)
+    # print(Y_train)
+    # print(X_train.shape)
+    # print(Y_train.shape)
     # X_test, Y_test = load_data('real_data_05nov23')
     # print(X_test)
     # print(X_test.shape)
@@ -217,18 +220,21 @@ def main():
     print(patterns)
     labels = patterns[1]
     patterns = patterns[0]
-    pattern_titles = ['wedge_rising', 'head_and_shoulders', 'cup_with_handle', 'triangle_ascending',
-                         'double_bottoms_eve_adam', 'random']
+    # pattern_titles = ['wedge_rising', 'head_and_shoulders', 'cup_with_handle', 'triangle_ascending',
+    #                      'double_bottoms_eve_adam', 'random']
+    pattern_titles = ['head_and_shoulders', 'cup_with_handle', 'triangle_ascending',
+                      'random']
     n = patterns.shape[0]
     x = torch.linspace(0, 30, steps=31)
     for i in range(n):
     #     plt.plot(x, X_test[n, 0, 0].reshape(-1))
     #     plt.plot(x, X_test[n, 0, 1].reshape(-1))
     #     plt.plot(x, X_test[n, 0, 2].reshape(-1))
-        plt.plot(x, patterns[i, 0].reshape(-1))
-        plt.title(pattern_titles[labels[i].item()])
-        plt.show()
-        time.sleep(5)
+        if labels[i] <3:
+            plt.plot(x, patterns[i, 0].reshape(-1))
+            plt.title(pattern_titles[labels[i].item()])
+            plt.show()
+            time.sleep(5)
     # model1 = model.eval()
     # output = model(X_test)
     # predictions = torch.argmax(output, dim=1)
@@ -257,26 +263,29 @@ def main():
     # plt.ylabel('Prediction')
     # plt.title('Confusion Matrix')
     # plt.show()
-    list_dates = ['2019-09-16', '2022-09-23']
-    list_symbols = ['MSFT', 'RCL']
-    for i in range(len(list_symbols)):
-        ticker = list_symbols[i]
-        date_end = list_dates[i]
-        data_sp500 = load_data('data_sp500')
-        aapl = data_sp500[ticker]
-        data_aux = aapl[aapl.index <= date_end]
-        data_aux = data_aux[-31:]
-        data = torch.Tensor(data_aux.values).reshape( 1, -1)
-        data = normalization(data).reshape(1,1,-1)
-        # dates = data_aux.index
-        pred = model(data)
-        print(f'Symbol: {ticker}, End date: {date_end}, Prediction: {pred} >> wedge_rising--head_and_shoulders--cup_with_handle--triangle_ascending--triple_tops--double_bottoms_eve_adam')
 
-        x = torch.linspace(0, 30, steps=31)
-        plt.plot(x, data[0, 0].reshape(-1))
-        plt.title('Head and shoulders tops')
-        plt.show()
-        time.sleep(5)
+
+
+    # list_dates = ['2019-09-16', '2022-09-23']
+    # list_symbols = ['MSFT', 'RCL']
+    # for i in range(len(list_symbols)):
+    #     ticker = list_symbols[i]
+    #     date_end = list_dates[i]
+    #     data_sp500 = load_data('data_sp500')
+    #     aapl = data_sp500[ticker]
+    #     data_aux = aapl[aapl.index <= date_end]
+    #     data_aux = data_aux[-31:]
+    #     data = torch.Tensor(data_aux.values).reshape( 1, -1)
+    #     data = normalization(data).reshape(1,1,-1)
+    #     # dates = data_aux.index
+    #     pred = model(data)
+    #     print(f'Symbol: {ticker}, End date: {date_end}, Prediction: {pred} >> wedge_rising--head_and_shoulders--cup_with_handle--triangle_ascending--triple_tops--double_bottoms_eve_adam')
+    #
+    #     x = torch.linspace(0, 30, steps=31)
+    #     plt.plot(x, data[0, 0].reshape(-1))
+    #     plt.title('Head and shoulders tops')
+    #     plt.show()
+    #     time.sleep(5)
 
 #
 
